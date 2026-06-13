@@ -41,7 +41,10 @@ def upload_image(image_bytes: bytes, owner_urn: str) -> str:
 
     put_resp = requests.put(
         upload_url,
-        headers={"Authorization": f"Bearer {config.linkedin_token()}"},
+        headers={
+            "Authorization": f"Bearer {config.linkedin_token()}",
+            "Content-Type": "application/octet-stream",
+        },
         data=image_bytes,
         timeout=max(config.HTTP_TIMEOUT, 60),
     )

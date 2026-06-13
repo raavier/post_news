@@ -22,7 +22,7 @@ HTTP_USER_AGENT = os.environ.get(
     "POST_NEWS_USER_AGENT",
     "Mozilla/5.0 (compatible; post-news-bot/0.1; +https://github.com/raavier/post_news)",
 )
-HTTP_TIMEOUT = int(os.environ.get("POST_NEWS_HTTP_TIMEOUT", "30"))
+HTTP_TIMEOUT = int(os.environ.get("POST_NEWS_HTTP_TIMEOUT") or "30")
 
 
 @dataclass(frozen=True)
@@ -56,23 +56,26 @@ SOURCES: tuple[FeedSource, ...] = (
 )
 
 # --- Gemini -----------------------------------------------------------------
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-GEMINI_API_BASE = os.environ.get(
-    "GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta"
+# Usamos `or default` (não o 2º arg do .get) porque o GitHub Actions seta a env
+# var como string vazia quando `vars.X` não está definido — e "" sobrescreveria
+# o default silenciosamente.
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
+GEMINI_API_BASE = (
+    os.environ.get("GEMINI_API_BASE") or "https://generativelanguage.googleapis.com/v1beta"
 )
 
 # --- Pollinations (imagem, sem chave) --------------------------------------
-POLLINATIONS_BASE = os.environ.get("POLLINATIONS_BASE", "https://image.pollinations.ai/prompt")
-IMAGE_WIDTH = int(os.environ.get("POST_NEWS_IMAGE_WIDTH", "1200"))
-IMAGE_HEIGHT = int(os.environ.get("POST_NEWS_IMAGE_HEIGHT", "627"))  # 1.91:1, formato LinkedIn
+POLLINATIONS_BASE = os.environ.get("POLLINATIONS_BASE") or "https://image.pollinations.ai/prompt"
+IMAGE_WIDTH = int(os.environ.get("POST_NEWS_IMAGE_WIDTH") or "1200")
+IMAGE_HEIGHT = int(os.environ.get("POST_NEWS_IMAGE_HEIGHT") or "627")  # 1.91:1, formato LinkedIn
 
 # --- LinkedIn ---------------------------------------------------------------
-LINKEDIN_API_BASE = os.environ.get("LINKEDIN_API_BASE", "https://api.linkedin.com")
+LINKEDIN_API_BASE = os.environ.get("LINKEDIN_API_BASE") or "https://api.linkedin.com"
 # Versão da API no formato YYYYMM (ver header LinkedIn-Version).
-LINKEDIN_VERSION = os.environ.get("LINKEDIN_VERSION", "202606")
+LINKEDIN_VERSION = os.environ.get("LINKEDIN_VERSION") or "202606"
 
 # --- GitHub -----------------------------------------------------------------
-GITHUB_API = os.environ.get("GITHUB_API_URL", "https://api.github.com")
+GITHUB_API = os.environ.get("GITHUB_API_URL") or "https://api.github.com"
 
 LABEL_PENDING = "pending-approval"
 LABEL_APPROVED = "approved"
