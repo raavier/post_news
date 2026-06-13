@@ -92,6 +92,12 @@ if _org.isdigit():
     _org = f"urn:li:organization:{_org}"
 DATABRICKS_ORG_URN = _org
 
+# Onde colocar o link da documentação:
+#   "comment" (padrão) -> publica como 1º comentário (corpo limpo, melhor alcance)
+#   "body"             -> acrescenta o link no fim do texto do post
+#   "none"             -> não inclui o link
+LINK_PLACEMENT = (os.environ.get("LINK_PLACEMENT") or "comment").lower()
+
 # --- GitHub -----------------------------------------------------------------
 GITHUB_API = os.environ.get("GITHUB_API_URL") or "https://api.github.com"
 

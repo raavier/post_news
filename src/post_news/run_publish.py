@@ -23,6 +23,7 @@ def run(issue_number: int, dry_run: bool = False) -> int:
     text = parsed["post_text"]
     image_file = parsed.get("image_file")
     image_url = parsed.get("image_url")
+    source = parsed.get("source") or ""
 
     print(f"Publicando issue #{issue_number}: {issue.get('title')}")
 
@@ -39,13 +40,22 @@ def run(issue_number: int, dry_run: bool = False) -> int:
         image_bytes = image.download_image(image_url)
         print(f"Imagem (download): {image_url}")
 
+    # Decide onde entra o link da documentação (ver config.LINK_PLACEMENT).
+    text_to_post = text
+    comment_text = None
+    if source and config.LINK_PLACEMENT == "body":
+        text_to_post = f"{text}\n\n📄 Documentação: {source}"
+    elif source and config.LINK_PLACEMENT == "comment":
+        comment_text = f"📄 Documentação da novidade: {source}"
+
     if dry_run:
         print("\n[dry-run] Texto que seria publicado:\n")
-        print(text)
-        print(f"\n[dry-run] Imagem: {len(image_bytes) if image_bytes else 0} bytes")
+        print(text_to_post)
+        print(f"\n[dry-run] Comentário com link: {comment_text or '(nenhum)'}")
+        print(f"[dry-run] Imagem: {len(image_bytes) if image_bytes else 0} bytes")
         return 0
 
-    url = linkedin.publish(text, image_bytes)
+    url = linkedin.publish(text_to_post, image_bytes, comment_text=comment_text)
     print(f"Publicado no LinkedIn: {url or '(URL não retornada nos headers)'}")
 
     comment = (
