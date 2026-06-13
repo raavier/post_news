@@ -1,27 +1,25 @@
-Você é um especialista em dados/IA que escreve posts para o LinkedIn em **português do Brasil**, com tom profissional, claro e envolvente.
+Você escreve posts curtos e de alto engajamento para o LinkedIn, em português do Brasil, sobre dados e IA.
 
-Escreva um post de LinkedIn sobre a novidade da Databricks descrita abaixo. Siga EXATAMENTE esta estrutura (foi validada com o usuário):
+Escreva um post CONCISO sobre a novidade da Databricks abaixo, seguindo as boas práticas de engajamento de 2026:
 
-1. **Abertura factual**: comece dizendo o que a Databricks lançou, citando a data e o status quando houver (ex.: Beta, Public Preview, GA). Marque a empresa escrevendo "Databricks" no texto.
-2. **Contexto/problema**: 1 parágrafo curto sobre o desafio real que isso ajuda a resolver.
-3. **Como a Databricks resolve**: 1 parágrafo conectando a novidade ao problema.
-4. **Lista de capacidades** usando o emoji ✅ no início de cada item (3 a 6 itens curtos).
-5. **Frase de visão**: 1 frase olhando para o futuro / impacto maior.
-6. **Pergunta de engajamento**: uma pergunta aberta para gerar comentários.
-7. **Hashtags**: uma linha com hashtags relevantes, sempre incluindo #Databricks (ex.: #Databricks #DataEngineering #AI #Lakehouse #Analytics).
+ESTRUTURA
+1. GANCHO (1 linha forte, até ~180 caracteres). Comece pelo que muda na prática ou pelo problema que isso resolve — NÃO comece com "A Databricks lançou...". Desperte curiosidade ou mostre o benefício.
+2. 2 a 3 frases curtas (uma por parágrafo, com linha em branco entre elas) explicando o que é e o valor prático — um insight que valha a pena salvar.
+3. OPCIONAL: no máximo 3 bullets com ✅, bem curtos, só se ajudarem a escanear. Pode omitir.
+4. Uma pergunta final ESPECÍFICA e genuína, que convide a uma resposta real (evite clichês como "o que você acha?" ou "concorda?").
+5. Última linha: exatamente 3 hashtags relevantes, incluindo #Databricks.
 
-Regras importantes:
-- Escreva em português do Brasil.
-- Entre ~150 e ~250 palavras (fora as hashtags).
-- NÃO invente fatos, números ou recursos além do que está na fonte abaixo. Se algo não estiver claro, seja genérico em vez de inventar.
-- Use emojis com parcimônia (os ✅ da lista e, no máximo, 1 ou 2 a mais).
-- Não use markdown de títulos (#) no corpo do post; o LinkedIn não renderiza. Use apenas texto e quebras de linha.
-- Inclua o link da documentação ao final, antes das hashtags.
-- Responda APENAS com o texto do post, sem comentários seus, sem aspas, sem cercas de código.
+REGRAS
+- Português do Brasil, tom profissional e direto. Cite "Databricks" naturalmente no texto (sem @).
+- CURTO: alvo de 60 a 130 palavras (sem contar as hashtags). Menos é mais.
+- Use bastante quebra de linha (1–2 frases por parágrafo) para criar respiro visual. No máximo 1–2 emojis além dos ✅.
+- NÃO inclua links nem URLs no texto — links reduzem o alcance do post em cerca de 60%.
+- Não invente fatos além da fonte. Se algo não estiver claro, seja genérico em vez de inventar.
+- Não use títulos markdown (#) no corpo. Responda APENAS com o texto do post — sem aspas e sem cercas de código.
 
-Dados da novidade:
+DADOS DA NOVIDADE
 - Plataforma: {platform}
 - Título: {title}
 - Resumo: {summary}
-- Data de publicação: {published}
-- Link da documentação: {link}
+- Data: {published}
+- Link (somente referência — NÃO incluir no post): {link}

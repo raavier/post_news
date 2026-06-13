@@ -156,6 +156,16 @@ def remove_label(number: int, label: str) -> None:
         resp.raise_for_status()
 
 
+def update_issue_body(number: int, body: str) -> None:
+    resp = requests.patch(
+        _repo_url(f"/issues/{number}"),
+        headers=_headers(),
+        json={"body": body},
+        timeout=config.HTTP_TIMEOUT,
+    )
+    resp.raise_for_status()
+
+
 def close_issue(number: int, state_reason: str = "completed") -> None:
     resp = requests.patch(
         _repo_url(f"/issues/{number}"),
