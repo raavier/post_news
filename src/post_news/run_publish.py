@@ -21,12 +21,23 @@ def run(issue_number: int, dry_run: bool = False) -> int:
     issue = github_issues.get_issue(issue_number)
     parsed = github_issues.parse_issue_body(issue.get("body") or "")
     text = parsed["post_text"]
+    image_file = parsed.get("image_file")
     image_url = parsed.get("image_url")
 
     print(f"Publicando issue #{issue_number}: {issue.get('title')}")
-    print(f"Imagem: {image_url or '(sem imagem)'}")
 
-    image_bytes = image.download_image(image_url) if image_url else None
+    # Preferimos o PNG local (versionado em drafts/, presente no checkout);
+    # se faltar, caímos para baixar pela raw URL (repo público).
+    image_bytes = None
+    if image_file:
+        try:
+            image_bytes = image.load_card_bytes(image_file)
+            print(f"Imagem: drafts/{image_file} ({len(image_bytes)} bytes)")
+        except FileNotFoundError:
+            print(f"Card local drafts/{image_file} não encontrado; tentando raw URL...")
+    if image_bytes is None and image_url:
+        image_bytes = image.download_image(image_url)
+        print(f"Imagem (download): {image_url}")
 
     if dry_run:
         print("\n[dry-run] Texto que seria publicado:\n")
