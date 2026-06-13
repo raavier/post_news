@@ -41,16 +41,43 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Detectar e criar rascunhos
+      # --- DRY-RUN: só imprime, não cria nada ---
+      - name: Dry-run
+        if: ${{ inputs.dry_run == true }}
         run: |
           ARGS=""
-          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
-          if [ -n "${{ inputs.limit }}" ]; then ARGS="$ARGS --limit ${{ inputs.limit }}"; fi
-          python -m post_news.run_detect $ARGS
+          if [ -n "${{ inputs.limit }}" ]; then ARGS="--limit ${{ inputs.limit }}"; fi
+          python -m post_news.run_detect --dry-run $ARGS
+
+      # --- FASE 1: gera texto e renderiza os cards em drafts/ ---
+      - name: Preparar rascunhos (texto + cards)
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.limit }}" ]; then ARGS="--limit ${{ inputs.limit }}"; fi
+          python -m post_news.run_detect --prepare $ARGS
+
+      # --- Publica os cards no repo ANTES de criar as issues (para a raw URL resolver) ---
+      - name: Commitar cards
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add drafts/
+          if git diff --cached --quiet; then
+            echo "Sem cards novos."
+          else
+            git commit -m "chore: adiciona cards das novidades"
+            git push
+          fi
+
+      # --- FASE 2: cria as issues (raw URL já resolve) e atualiza o estado ---
+      - name: Criar issues
+        if: ${{ inputs.dry_run != true }}
+        run: python -m post_news.run_detect --create-issues
 
       - name: Commitar estado atualizado
-        # always() para persistir o progresso mesmo se o passo anterior falhar
-        # (ex.: rate limit do Gemini no meio do baseline).
+        # always() para persistir o progresso mesmo se um passo anterior falhar.
         if: ${{ always() && inputs.dry_run != true }}
         run: |
           if [ -n "$(git status --porcelain state/seen.json)" ]; then

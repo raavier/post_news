@@ -8,8 +8,8 @@ venv/
 
 # Working files / artefatos locais
 .work/
-drafts/*.png
-drafts/*.jpg
+# Nota: os cards em drafts/*.png SÃO versionados (repo público) para renderizar
+# inline nas issues via raw URL.
 
 # OS
 .DS_Store

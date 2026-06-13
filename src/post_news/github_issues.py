@@ -41,13 +41,14 @@ def _repo_url(path: str) -> str:
 
 # --- Montagem / parse do corpo ---------------------------------------------
 
-def build_issue_body(entry: Entry, post_text: str, image_url: str) -> str:
+def build_issue_body(entry: Entry, post_text: str, image_url: str, image_file: str = "") -> str:
     meta = json.dumps(
         {
             "key": entry.key,
             "platform": entry.platform,
             "source": entry.link,
             "image": image_url,
+            "image_file": image_file,
         },
         ensure_ascii=False,
     )
@@ -82,6 +83,7 @@ def parse_issue_body(body: str) -> dict:
         "platform": meta.get("platform"),
         "source": meta.get("source"),
         "image_url": meta.get("image"),
+        "image_file": meta.get("image_file", ""),
         "post_text": post_text,
     }
 
