@@ -49,7 +49,9 @@ jobs:
           python -m post_news.run_detect $ARGS
 
       - name: Commitar estado atualizado
-        if: ${{ inputs.dry_run != true }}
+        # always() para persistir o progresso mesmo se o passo anterior falhar
+        # (ex.: rate limit do Gemini no meio do baseline).
+        if: ${{ always() && inputs.dry_run != true }}
         run: |
           if [ -n "$(git status --porcelain state/seen.json)" ]; then
             git config user.name "github-actions[bot]"

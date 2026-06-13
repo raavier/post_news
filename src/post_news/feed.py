@@ -12,7 +12,9 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
+from datetime import datetime, timezone
 from dataclasses import dataclass
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -189,6 +191,31 @@ def _strip_html(text: str) -> str:
     text = _TAG_RE.sub(" ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+_EPOCH = datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _parse_date(value: str) -> datetime | None:
+    """Parseia data RFC822 (RSS) ou ISO 8601 (Atom); devolve sempre tz-aware (UTC)."""
+    if not value:
+        return None
+    dt = None
+    try:
+        dt = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if dt is not None and dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def sort_newest_first(entries: list[Entry]) -> list[Entry]:
+    """Ordena por data de publicação (mais recente primeiro); sem data vai para o fim."""
+    return sorted(entries, key=lambda e: _parse_date(e.published) or _EPOCH, reverse=True)
 
 
 def fetch_all_entries() -> list[Entry]:
