@@ -85,6 +85,13 @@ LINKEDIN_API_BASE = os.environ.get("LINKEDIN_API_BASE") or "https://api.linkedin
 # Ajustável via variável de repositório LINKEDIN_VERSION se o erro 426 indicar outra.
 LINKEDIN_VERSION = os.environ.get("LINKEDIN_VERSION") or "202605"
 
+# URN da organização Databricks para mencionar (@Databricks) nos posts. Pode ser
+# o número (ex.: "3608") ou o URN completo. Vazio = não menciona (só hashtag/texto).
+_org = (os.environ.get("DATABRICKS_ORG_URN") or "").strip()
+if _org.isdigit():
+    _org = f"urn:li:organization:{_org}"
+DATABRICKS_ORG_URN = _org
+
 # --- GitHub -----------------------------------------------------------------
 GITHUB_API = os.environ.get("GITHUB_API_URL") or "https://api.github.com"
 

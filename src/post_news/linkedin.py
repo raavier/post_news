@@ -5,16 +5,52 @@ Fluxo:
 2. PUT dos bytes da imagem no uploadUrl.
 3. POST /rest/posts referenciando o URN da imagem.
 
-Observação sobre marcar a Databricks: a menção real (@Databricks como entidade)
-exige o URN da organização e anotações específicas na API. Por padrão marcamos a
-empresa por texto + hashtag #Databricks (como no exemplo aprovado). A menção por
-entidade pode ser adicionada depois informando o URN da organização.
+Menção à @Databricks: se config.DATABRICKS_ORG_URN estiver definido, a primeira
+ocorrência de "Databricks" no texto vira um link clicável usando a sintaxe de
+"little text" do LinkedIn — @[Databricks](urn:li:organization:ID) — e os demais
+caracteres reservados são escapados. Sem o URN, mantém só texto + hashtag.
 """
 from __future__ import annotations
+
+import re
 
 import requests
 
 from . import config
+
+
+# Caracteres reservados do "little text" do commentary (escapados com \).
+_RESERVED = set("\\|{}@[]()<>*_~")
+
+
+def _escape_commentary(text: str) -> str:
+    """Escapa reservados do little-text. Mantém '#' de hashtag (precedido de espaço),
+    mas escapa '#' no meio de palavra/URL (fragmento), que viraria hashtag indevida."""
+    out: list[str] = []
+    prev = ""
+    for ch in text:
+        if ch in _RESERVED:
+            out.append("\\" + ch)
+        elif ch == "#":
+            out.append("#" if (prev == "" or prev.isspace()) else "\\#")
+        else:
+            out.append(ch)
+        prev = ch
+    return "".join(out)
+
+
+def format_commentary(text: str, org_urn: str = "") -> str:
+    """Prepara o texto do post. Com org_urn, injeta a menção @Databricks e escapa o resto."""
+    if not org_urn:
+        return text
+    escaped = _escape_commentary(text)
+    mention = f"@[Databricks]({org_urn})"
+    # Primeira ocorrência de "Databricks" que não seja hashtag (#Databricks) nem
+    # parte de outra palavra. (count=1 -> só a primeira vira link.)
+    pattern = re.compile(r"(?<![#\w])Databricks(?!\w)")
+    escaped, _ = pattern.subn(mention, escaped, count=1)
+    return escaped
+
 
 
 def _rest_headers() -> dict[str, str]:
@@ -66,7 +102,7 @@ def create_post(text: str, image_urn: str | None, author_urn: str, alt_text: str
     """Cria o post e retorna a URL pública do update."""
     body: dict = {
         "author": author_urn,
-        "commentary": text,
+        "commentary": format_commentary(text, config.DATABRICKS_ORG_URN),
         "visibility": "PUBLIC",
         "distribution": {
             "feedDistribution": "MAIN_FEED",
