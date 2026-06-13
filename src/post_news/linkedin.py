@@ -26,6 +26,16 @@ def _rest_headers() -> dict[str, str]:
     }
 
 
+def _check(resp, contexto: str):
+    """Levanta erro incluindo o CORPO da resposta do LinkedIn (essencial para diagnóstico)."""
+    if resp.status_code >= 400:
+        raise RuntimeError(
+            f"{contexto} falhou: HTTP {resp.status_code}. "
+            f"Resposta do LinkedIn: {resp.text[:1000]}"
+        )
+    return resp
+
+
 def upload_image(image_bytes: bytes, owner_urn: str) -> str:
     """Sobe a imagem e retorna o URN (urn:li:image:...)."""
     init_resp = requests.post(
@@ -34,7 +44,7 @@ def upload_image(image_bytes: bytes, owner_urn: str) -> str:
         json={"initializeUploadRequest": {"owner": owner_urn}},
         timeout=config.HTTP_TIMEOUT,
     )
-    init_resp.raise_for_status()
+    _check(init_resp, "initializeUpload (LinkedIn-Version=" + config.LINKEDIN_VERSION + ")")
     value = init_resp.json()["value"]
     upload_url = value["uploadUrl"]
     image_urn = value["image"]
@@ -48,7 +58,7 @@ def upload_image(image_bytes: bytes, owner_urn: str) -> str:
         data=image_bytes,
         timeout=max(config.HTTP_TIMEOUT, 60),
     )
-    put_resp.raise_for_status()
+    _check(put_resp, "upload da imagem (PUT)")
     return image_urn
 
 
@@ -75,7 +85,7 @@ def create_post(text: str, image_urn: str | None, author_urn: str, alt_text: str
         json=body,
         timeout=config.HTTP_TIMEOUT,
     )
-    resp.raise_for_status()
+    _check(resp, "criação do post (/rest/posts)")
     # O URN do post volta no header (x-restli-id / x-linkedin-id).
     post_urn = resp.headers.get("x-restli-id") or resp.headers.get("x-linkedin-id") or ""
     return post_url(post_urn)

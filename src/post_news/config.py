@@ -80,8 +80,10 @@ IMAGE_HEIGHT = int(os.environ.get("POST_NEWS_IMAGE_HEIGHT") or "627")  # 1.91:1,
 
 # --- LinkedIn ---------------------------------------------------------------
 LINKEDIN_API_BASE = os.environ.get("LINKEDIN_API_BASE") or "https://api.linkedin.com"
-# Versão da API no formato YYYYMM (ver header LinkedIn-Version).
-LINKEDIN_VERSION = os.environ.get("LINKEDIN_VERSION") or "202606"
+# Versão da API no formato YYYYMM (header LinkedIn-Version). Usamos o mês ANTERIOR
+# como padrão porque o LinkedIn costuma não publicar a versão do mês corrente ainda.
+# Ajustável via variável de repositório LINKEDIN_VERSION se o erro 426 indicar outra.
+LINKEDIN_VERSION = os.environ.get("LINKEDIN_VERSION") or "202605"
 
 # --- GitHub -----------------------------------------------------------------
 GITHUB_API = os.environ.get("GITHUB_API_URL") or "https://api.github.com"
