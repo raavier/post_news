@@ -123,8 +123,7 @@ def create_post(text: str, image_urn: str | None, author_urn: str, alt_text: str
     )
     _check(resp, "criação do post (/rest/posts)")
     # O URN do post volta no header (x-restli-id / x-linkedin-id).
-    post_urn = resp.headers.get("x-restli-id") or resp.headers.get("x-linkedin-id") or ""
-    return post_url(post_urn)
+    return resp.headers.get("x-restli-id") or resp.headers.get("x-linkedin-id") or ""
 
 
 def post_url(post_urn: str) -> str:
@@ -133,8 +132,31 @@ def post_url(post_urn: str) -> str:
     return f"https://www.linkedin.com/feed/update/{post_urn}/"
 
 
-def publish(text: str, image_bytes: bytes | None) -> str:
-    """Helper de alto nível: sobe a imagem (se houver) e publica o post."""
+def add_comment(post_urn: str, text: str) -> None:
+    """Adiciona um comentário ao post (ex.: o link da documentação)."""
+    from urllib.parse import quote
+
+    url = f"{config.LINKEDIN_API_BASE}/rest/socialActions/{quote(post_urn, safe='')}/comments"
+    body = {
+        "actor": config.linkedin_author_urn(),
+        "object": post_urn,
+        "message": {"text": text},
+    }
+    resp = requests.post(url, headers=_rest_headers(), json=body, timeout=config.HTTP_TIMEOUT)
+    _check(resp, "comentário com o link")
+
+
+def publish(text: str, image_bytes: bytes | None, comment_text: str | None = None) -> str:
+    """Sobe a imagem (se houver), publica o post e, opcionalmente, comenta o link.
+
+    Se o comentário falhar, o post já está publicado — apenas avisamos (não falha).
+    """
     author = config.linkedin_author_urn()
     image_urn = upload_image(image_bytes, author) if image_bytes else None
-    return create_post(text, image_urn, author)
+    post_urn = create_post(text, image_urn, author)
+    if comment_text and post_urn:
+        try:
+            add_comment(post_urn, comment_text)
+        except Exception as exc:  # post já publicado; não falhar por causa do comentário
+            print(f"Aviso: post publicado, mas falhou ao comentar o link: {exc}")
+    return post_url(post_urn)
