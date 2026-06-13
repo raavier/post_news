@@ -63,6 +63,15 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-2.5-flash"
 GEMINI_API_BASE = (
     os.environ.get("GEMINI_API_BASE") or "https://generativelanguage.googleapis.com/v1beta"
 )
+# Pausa entre chamadas ao Gemini para respeitar o limite de req/min do tier gratuito.
+GEMINI_DELAY_SECONDS = float(os.environ.get("GEMINI_DELAY_SECONDS") or "5")
+
+# --- Detecção ---------------------------------------------------------------
+# Máximo de rascunhos criados por execução (evita flood e estouro de rate limit).
+DEFAULT_LIMIT = int(os.environ.get("POST_NEWS_DEFAULT_LIMIT") or "10")
+# Quantas amostras criar na PRIMEIRA execução (bootstrap). 0 = só faz baseline do
+# histórico (marca tudo como visto) sem criar issues; novidades futuras é que viram posts.
+BOOTSTRAP_SAMPLE = int(os.environ.get("POST_NEWS_BOOTSTRAP_SAMPLE") or "0")
 
 # --- Pollinations (imagem, sem chave) --------------------------------------
 POLLINATIONS_BASE = os.environ.get("POLLINATIONS_BASE") or "https://image.pollinations.ai/prompt"
