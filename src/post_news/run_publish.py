@@ -1,0 +1,65 @@
+"""Orquestra a publicação de uma issue aprovada no LinkedIn.
+
+Uso:
+    python -m post_news.run_publish --issue 42
+    ISSUE_NUMBER=42 python -m post_news.run_publish
+
+Lê o corpo (possivelmente editado) da issue, extrai o texto final e a URL da
+imagem, baixa a imagem, publica no LinkedIn, comenta a URL e fecha a issue.
+
+Requer: GITHUB_TOKEN, GITHUB_REPOSITORY, LINKEDIN_ACCESS_TOKEN, LINKEDIN_AUTHOR_URN.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+
+from . import config, github_issues, image, linkedin
+
+
+def run(issue_number: int, dry_run: bool = False) -> int:
+    issue = github_issues.get_issue(issue_number)
+    parsed = github_issues.parse_issue_body(issue.get("body") or "")
+    text = parsed["post_text"]
+    image_url = parsed.get("image_url")
+
+    print(f"Publicando issue #{issue_number}: {issue.get('title')}")
+    print(f"Imagem: {image_url or '(sem imagem)'}")
+
+    image_bytes = image.download_image(image_url) if image_url else None
+
+    if dry_run:
+        print("\n[dry-run] Texto que seria publicado:\n")
+        print(text)
+        print(f"\n[dry-run] Imagem: {len(image_bytes) if image_bytes else 0} bytes")
+        return 0
+
+    url = linkedin.publish(text, image_bytes)
+    print(f"Publicado no LinkedIn: {url or '(URL não retornada nos headers)'}")
+
+    comment = (
+        f"✅ Publicado no LinkedIn com sucesso.\n\n"
+        f"{('🔗 ' + url) if url else '(LinkedIn não retornou a URL do post nos headers.)'}"
+    )
+    github_issues.add_comment(issue_number, comment)
+    github_issues.remove_label(issue_number, config.LABEL_PENDING)
+    github_issues.add_labels(issue_number, [config.LABEL_PUBLISHED])
+    github_issues.close_issue(issue_number)
+    print("Issue atualizada e fechada.")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Publica uma issue aprovada no LinkedIn.")
+    parser.add_argument("--issue", type=int, default=None, help="Número da issue.")
+    parser.add_argument("--dry-run", action="store_true", help="Não publica; só imprime.")
+    args = parser.parse_args()
+
+    issue_number = args.issue or (int(os.environ["ISSUE_NUMBER"]) if os.environ.get("ISSUE_NUMBER") else None)
+    if not issue_number:
+        parser.error("Informe --issue N ou a variável de ambiente ISSUE_NUMBER.")
+    return run(issue_number=issue_number, dry_run=args.dry_run)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

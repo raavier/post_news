@@ -1,0 +1,105 @@
+# post_news
+
+App de **custo zero** que monitora as novidades da documentação da **Databricks**
+(release notes de **AWS** e **Azure**), gera um **post para o LinkedIn em português**
+(com imagem), e deixa você **revisar e aprovar** antes de publicar na sua conta pessoal.
+
+Tudo roda dentro do GitHub (Actions + Issues) — sem servidor, sem custo recorrente.
+
+## Como funciona
+
+```
+RSS Databricks (AWS + Azure)
+        │  (cron diário)
+        ▼
+  detect.yml  ──►  Gemini (texto PT-BR)  +  Pollinations (imagem do card)
+        │
+        ▼
+  Cria uma GitHub Issue (label: pending-approval)  ──►  você recebe a notificação
+        │
+        │  você revisa, edita o texto se quiser, e adiciona a label "approved"
+        ▼
+  publish.yml  ──►  posta no LinkedIn  ──►  comenta a URL na issue e fecha
+```
+
+- **Gerência e aprovação**: as [Issues](../../issues) do repositório são o seu painel.
+  Cada novidade vira uma issue com o texto e a imagem.
+- **Notificação**: as notificações nativas do GitHub (e-mail/app) avisam quando há rascunho novo.
+- **Aprovar**: adicione a label `approved`. **Descartar**: feche a issue.
+- **Editar**: edite o corpo da issue (entre os marcadores `POST:START`/`POST:END`) antes de aprovar.
+
+## Componentes
+
+| Arquivo | Função |
+|---|---|
+| `src/post_news/feed.py` | Descobre/parseia os feeds RSS (AWS+Azure) e deduplica |
+| `src/post_news/generate.py` | Gera o texto PT-BR via Gemini (template em `prompts/post_template.md`) |
+| `src/post_news/image.py` | Gera o card via Pollinations (URL pública e determinística) |
+| `src/post_news/github_issues.py` | Cria/atualiza issues e faz o parse do rascunho |
+| `src/post_news/linkedin.py` | Sobe a imagem e publica o post no LinkedIn |
+| `src/post_news/run_detect.py` | Orquestra a detecção (usado pelo `detect.yml`) |
+| `src/post_news/run_publish.py` | Publica uma issue aprovada (usado pelo `publish.yml`) |
+| `scripts/linkedin_oauth.py` | Obtém token + URN do LinkedIn (passo único, local) |
+
+## Setup (passo único)
+
+### 1. Chave do Gemini
+Crie uma API key gratuita no [Google AI Studio](https://aistudio.google.com/apikey).
+
+### 2. App do LinkedIn + token
+1. Crie um app em https://www.linkedin.com/developers/apps
+2. Adicione os produtos **"Share on LinkedIn"** e **"Sign In with LinkedIn using OpenID Connect"**.
+3. Em **Auth**, adicione a Redirect URL `http://localhost:8000/callback`.
+4. Rode o helper localmente para obter o token e o seu URN:
+   ```bash
+   pip install -r requirements.txt
+   LINKEDIN_CLIENT_ID=xxx LINKEDIN_CLIENT_SECRET=yyy python scripts/linkedin_oauth.py
+   ```
+   Ele imprime `LINKEDIN_ACCESS_TOKEN` e `LINKEDIN_AUTHOR_URN`.
+
+### 3. Secrets do repositório
+Em **Settings → Secrets and variables → Actions → Secrets**, crie:
+- `GEMINI_API_KEY`
+- `LINKEDIN_ACCESS_TOKEN`
+- `LINKEDIN_AUTHOR_URN`
+
+(Opcional, em **Variables**: `GEMINI_MODEL`, `LINKEDIN_VERSION`.)
+
+> ⚠️ **Token do LinkedIn expira em ~60 dias.** Quando expirar, rode o helper de novo
+> (ou implemente a renovação via refresh token) e atualize o secret.
+
+### 4. Ative os workflows
+Os workflows `Detectar novidades Databricks` e `Publicar no LinkedIn` já ficam
+disponíveis na aba **Actions**. As labels são criadas automaticamente na primeira execução.
+
+## Testar localmente
+
+```bash
+pip install -r requirements.txt
+export PYTHONPATH=src
+
+# 1. Feeds (não precisa de credenciais): mostra feeds resolvidos, entradas e dedupe
+python -m post_news.feed
+
+# 2. Imagem (não precisa de credenciais): gera a URL e baixa um PNG de teste
+python -m post_news.image "Databricks lança modo real-time no Lakeflow"
+
+# 3. Texto + post completo, sem criar issue (precisa de GEMINI_API_KEY)
+GEMINI_API_KEY=xxx python -m post_news.run_detect --dry-run --limit 1
+```
+
+## Operação
+
+- **Rodar a detecção manualmente**: Actions → *Detectar novidades Databricks* → *Run workflow*
+  (há opções de `dry_run` e `limit`).
+- **Publicar**: abra a issue do rascunho, ajuste o texto se quiser, e adicione a label `approved`.
+- O estado das novidades já processadas fica em `state/seen.json` (versionado).
+
+## Notas
+
+- Monitoramos **AWS + Azure**; a mesma novidade que aparece nas duas docs gera
+  **uma única** issue (dedupe por título + data).
+- A marcação da Databricks é feita por texto + hashtag `#Databricks`. A menção por
+  entidade (`@Databricks`) exige o URN da organização e pode ser adicionada depois.
+- Sem custo: GitHub Actions (free tier), Issues, Pollinations e Gemini (free tiers),
+  LinkedIn Consumer tier (`w_member_social`).

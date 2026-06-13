@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Working files / artefatos locais
+.work/
+drafts/*.png
+drafts/*.jpg
+
+# OS
+.DS_Store

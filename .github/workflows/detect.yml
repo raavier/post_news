@@ -1,0 +1,62 @@
+name: Detectar novidades Databricks
+
+on:
+  schedule:
+    # Diariamente às 12:00 UTC (09:00 BRT). Ajuste se quiser outro horário.
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Só imprimir (não cria issues)"
+        type: boolean
+        default: false
+      limit:
+        description: "Máximo de novidades por execução (vazio = sem limite)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # para commitar state/seen.json
+  issues: write     # para criar as issues de rascunho
+
+concurrency:
+  group: detect
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Detectar e criar rascunhos
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          if [ -n "${{ inputs.limit }}" ]; then ARGS="$ARGS --limit ${{ inputs.limit }}"; fi
+          python -m post_news.run_detect $ARGS
+
+      - name: Commitar estado atualizado
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          if [ -n "$(git status --porcelain state/seen.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add state/seen.json
+            git commit -m "chore: atualiza estado de novidades processadas"
+            git push
+          else
+            echo "Sem mudanças no estado."
+          fi

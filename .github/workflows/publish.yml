@@ -1,0 +1,50 @@
+name: Publicar no LinkedIn
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: publish-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Só roda quando a label adicionada for "approved".
+    if: ${{ github.event.label.name == 'approved' }}
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+      LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+      LINKEDIN_VERSION: ${{ vars.LINKEDIN_VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Publicar issue aprovada
+        run: python -m post_news.run_publish --issue "$ISSUE_NUMBER"
+
+      - name: Reportar falha na issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body: "❌ Falha ao publicar no LinkedIn. Verifique os logs do workflow **Publicar no LinkedIn** (token expirado? imagem indisponível?). Remova e readicione a label `approved` para tentar de novo."
+            });
