@@ -1,0 +1,29 @@
+name: Regerar texto de uma issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Número da issue de rascunho a regerar"
+        required: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m post_news.run_regenerate --issue "${{ inputs.issue_number }}"
