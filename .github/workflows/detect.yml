@@ -11,9 +11,21 @@ on:
         type: boolean
         default: false
       limit:
-        description: "Máximo de novidades por execução (vazio = sem limite)"
+        description: "Teto global de novidades por execução (vazio = sem teto)"
         required: false
         default: ""
+      backfill:
+        description: "Backfill: recuperar histórico recente (ignora o baseline)"
+        type: boolean
+        default: false
+      days:
+        description: "Backfill: janela em dias (padrão 14)"
+        required: false
+        default: "14"
+      per_brand:
+        description: "Backfill: máximo de itens por marca (padrão 5)"
+        required: false
+        default: "5"
 
 permissions:
   contents: write   # para commitar state/seen.json
@@ -44,17 +56,29 @@ jobs:
       # --- DRY-RUN: só imprime, não cria nada ---
       - name: Dry-run
         if: ${{ inputs.dry_run == true }}
+        env:
+          IN_LIMIT: ${{ inputs.limit }}
+          IN_BACKFILL: ${{ inputs.backfill }}
+          IN_DAYS: ${{ inputs.days }}
+          IN_PER_BRAND: ${{ inputs.per_brand }}
         run: |
           ARGS=""
-          if [ -n "${{ inputs.limit }}" ]; then ARGS="--limit ${{ inputs.limit }}"; fi
+          if [ -n "$IN_LIMIT" ]; then ARGS="$ARGS --limit $IN_LIMIT"; fi
+          if [ "$IN_BACKFILL" = "true" ]; then ARGS="$ARGS --backfill --days $IN_DAYS --per-brand $IN_PER_BRAND"; fi
           python -m post_news.run_detect --dry-run $ARGS
 
       # --- FASE 1: gera texto e renderiza os cards em drafts/ ---
       - name: Preparar rascunhos (texto + cards)
         if: ${{ inputs.dry_run != true }}
+        env:
+          IN_LIMIT: ${{ inputs.limit }}
+          IN_BACKFILL: ${{ inputs.backfill }}
+          IN_DAYS: ${{ inputs.days }}
+          IN_PER_BRAND: ${{ inputs.per_brand }}
         run: |
           ARGS=""
-          if [ -n "${{ inputs.limit }}" ]; then ARGS="--limit ${{ inputs.limit }}"; fi
+          if [ -n "$IN_LIMIT" ]; then ARGS="$ARGS --limit $IN_LIMIT"; fi
+          if [ "$IN_BACKFILL" = "true" ]; then ARGS="$ARGS --backfill --days $IN_DAYS --per-brand $IN_PER_BRAND"; fi
           python -m post_news.run_detect --prepare $ARGS
 
       # --- Publica os cards no repo ANTES de criar as issues (para a raw URL resolver) ---

@@ -24,10 +24,13 @@
     "hashtags": ["#AzureDataFactory", "#DataEngineering", "#Azure"]
   },
   {
-    "brand": "GitHub Copilot",
-    "tag": "GitHub",
-    "feed_url": "https://github.blog/changelog/label/copilot/feed/",
-    "hashtags": ["#GitHubCopilot", "#AI", "#DevTools"]
+    "brand": "Microsoft 365 Copilot",
+    "tag": "Microsoft 365",
+    "page_url": "https://techcommunity.microsoft.com/category/microsoft365copilot/blog/microsoft365copilotblog",
+    "feed_candidates": [
+      "https://techcommunity.microsoft.com/gxcuf89792/rss/board?board.id=microsoft365copilotblog"
+    ],
+    "hashtags": ["#Microsoft365Copilot", "#Copilot", "#Microsoft365"]
   },
   {
     "brand": "Claude Code",
