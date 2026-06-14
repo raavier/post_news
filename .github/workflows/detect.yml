@@ -43,6 +43,11 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Fallback (só usado se o Gemini falhar):
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_BASE_URL: ${{ vars.DATABRICKS_BASE_URL }}
+      DATABRICKS_MODEL: ${{ vars.DATABRICKS_MODEL }}
+      DATABRICKS_MAX_CALLS: ${{ vars.DATABRICKS_MAX_CALLS }}
     steps:
       - uses: actions/checkout@v4
 
