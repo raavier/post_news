@@ -10,27 +10,41 @@ from . import config
 from .feed import Entry
 
 
-def _load_template() -> str:
-    return config.PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
+def _load_template(path=None) -> str:
+    return (path or config.PROMPT_TEMPLATE_PATH).read_text(encoding="utf-8")
+
+
+def _hashtags(entry: Entry) -> str:
+    return " ".join(entry.hashtags) if entry.hashtags else "(escolha 3 relevantes)"
 
 
 def build_prompt(entry: Entry) -> str:
-    template = _load_template()
-    hashtags = " ".join(entry.hashtags) if entry.hashtags else "(escolha 3 relevantes)"
-    return template.format(
+    return _load_template().format(
         brand=entry.brand,
         tag=entry.tag or entry.brand,
         title=entry.title,
         summary=entry.summary or "(sem resumo no feed)",
         published=entry.published or "(não informada)",
         link=entry.link or "(sem link)",
-        hashtags=hashtags,
+        hashtags=_hashtags(entry),
     )
 
 
-def generate_post_text(entry: Entry) -> str:
-    """Chama o Gemini e devolve o texto do post pronto para o LinkedIn."""
-    prompt = build_prompt(entry)
+def build_revision_prompt(entry: Entry, current_post: str, feedback: str) -> str:
+    """Monta o prompt que pede ao Gemini para reescrever o post aplicando o feedback."""
+    return _load_template(config.REVISE_TEMPLATE_PATH).format(
+        brand=entry.brand,
+        tag=entry.tag or entry.brand,
+        title=entry.title,
+        summary=entry.summary or "(sem resumo no feed)",
+        hashtags=_hashtags(entry),
+        current_post=current_post.strip() or "(vazio)",
+        feedback=feedback.strip(),
+    )
+
+
+def _call_gemini(prompt: str) -> str:
+    """Chama o Gemini com um prompt e devolve o texto gerado (já validado/strip)."""
     url = f"{config.GEMINI_API_BASE}/models/{config.GEMINI_MODEL}:generateContent"
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -56,3 +70,13 @@ def generate_post_text(entry: Entry) -> str:
         reason = candidate.get("finishReason", "?")
         raise RuntimeError(f"Gemini retornou texto vazio (finishReason={reason}): {data}")
     return text
+
+
+def generate_post_text(entry: Entry) -> str:
+    """Chama o Gemini e devolve o texto do post pronto para o LinkedIn."""
+    return _call_gemini(build_prompt(entry))
+
+
+def revise_post_text(entry: Entry, current_post: str, feedback: str) -> str:
+    """Reescreve o post atual aplicando o feedback do usuário (comentário na issue)."""
+    return _call_gemini(build_revision_prompt(entry, current_post, feedback))
