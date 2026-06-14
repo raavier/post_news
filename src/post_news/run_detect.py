@@ -41,11 +41,13 @@ def _plan(entries, state, *, limit=None, days=None, per_brand=None, backfill=Fal
     """
     brands_now = {e.brand for e in entries}
     if backfill:
+        # Backfill IGNORA o baseline (state.seen): recupera o histórico recente.
+        # Só evita o que já virou post de fato (state.posted), p/ não duplicar.
         cutoff = datetime.now(timezone.utc) - timedelta(days=days) if days else None
         counts: dict[str, int] = {}
         to_process = []
         for e in entries:
-            if e.key in state.seen:
+            if e.key in state.posted:
                 continue
             if cutoff is not None:
                 d = feed._parse_date(e.published)
@@ -131,6 +133,7 @@ def create_issues() -> int:
         issue = github_issues.create_issue(title, body, [config.LABEL_PENDING])
         print(f"Issue criada: #{issue['number']} -> {issue['html_url']}")
         state.seen.add(entry.key)
+        state.posted.add(entry.key)
         created += 1
 
     # Baseline das marcas novas + registro das marcas vistas.

@@ -231,16 +231,21 @@ def fetch_all_entries() -> list[Entry]:
 
 @dataclass
 class State:
-    seen: set[str]                 # chaves já processadas
-    baselined_brands: set[str]     # marcas cujo histórico já foi "zerado"
+    seen: set[str]                          # chaves já vistas (baseline + posts)
+    baselined_brands: set[str]              # marcas cujo histórico já foi "zerado"
+    posted: set[str] = field(default_factory=set)  # chaves que viraram issue de fato
 
 
 def load_state(path: Path | None = None) -> State:
     path = path or config.STATE_PATH
     if not path.exists():
-        return State(set(), set())
+        return State(set(), set(), set())
     data = json.loads(path.read_text(encoding="utf-8"))
-    return State(set(data.get("seen_keys", [])), set(data.get("baselined_brands", [])))
+    return State(
+        set(data.get("seen_keys", [])),
+        set(data.get("baselined_brands", [])),
+        set(data.get("posted_keys", [])),
+    )
 
 
 def save_state(state: State, path: Path | None = None) -> None:
@@ -249,6 +254,7 @@ def save_state(state: State, path: Path | None = None) -> None:
     payload = {
         "seen_keys": sorted(state.seen),
         "baselined_brands": sorted(state.baselined_brands),
+        "posted_keys": sorted(state.posted),
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
