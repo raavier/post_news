@@ -1,0 +1,54 @@
+name: Revisar texto via comentário
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: revise-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  revise:
+    # Só roda em issues (não PRs), ignorando o próprio bot, quando o comentário
+    # começa com o comando /revisar.
+    if: >-
+      ${{ github.event.issue.pull_request == null
+        && github.event.comment.user.login != 'github-actions[bot]'
+        && startsWith(github.event.comment.body, '/revisar') }}
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      COMMENT_BODY: ${{ github.event.comment.body }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Revisar texto da issue
+        run: python -m post_news.run_revise
+
+      - name: Reportar falha na issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body: "❌ Falha ao revisar o texto. Verifique os logs do workflow **Revisar texto via comentário** (cota do Gemini? token?). Tente comentar `/revisar ...` de novo."
+            });

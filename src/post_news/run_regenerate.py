@@ -14,26 +14,30 @@ from __future__ import annotations
 import argparse
 import os
 
-from . import config, feed, generate, github_issues
+from . import feed, generate, github_issues
 from .feed import Entry
+
+
+def recover_entry(issue: dict, parsed: dict) -> Entry:
+    """Recupera o Entry completo do feed (resumo/hashtags); fallback p/ dados da issue."""
+    key = parsed["key"]
+    entry = next((e for e in feed.fetch_all_entries() if e.key == key), None)
+    if entry is not None:
+        return entry
+    title = issue.get("title", "")
+    if title.startswith("["):
+        title = title.split("] ", 1)[-1]
+    print("Entrada não encontrada no feed; usando título/fonte da issue.")
+    return Entry(
+        key=key, title=title, summary="", link=parsed.get("source") or "",
+        published="", brand=parsed.get("brand") or "Databricks", tag=parsed.get("tag", ""),
+    )
 
 
 def run(issue_number: int) -> int:
     issue = github_issues.get_issue(issue_number)
     parsed = github_issues.parse_issue_body(issue.get("body") or "")
-    key = parsed["key"]
-
-    # Tenta recuperar a entrada completa do feed (para ter o resumo e as hashtags).
-    entry = next((e for e in feed.fetch_all_entries() if e.key == key), None)
-    if entry is None:
-        title = issue.get("title", "")
-        if title.startswith("["):
-            title = title.split("] ", 1)[-1]
-        entry = Entry(
-            key=key, title=title, summary="", link=parsed.get("source") or "",
-            published="", brand=parsed.get("brand") or "Databricks", tag=parsed.get("tag", ""),
-        )
-        print("Entrada não encontrada no feed; usando título/fonte da issue.")
+    entry = recover_entry(issue, parsed)
 
     text = generate.generate_post_text(entry)
     body = github_issues.build_issue_body(

@@ -17,7 +17,11 @@ STATE_PATH = REPO_ROOT / "state" / "seen.json"
 DRAFTS_DIR = REPO_ROOT / "drafts"
 WORK_DIR = REPO_ROOT / ".work"
 PROMPT_TEMPLATE_PATH = REPO_ROOT / "prompts" / "post_template.md"
+REVISE_TEMPLATE_PATH = REPO_ROOT / "prompts" / "revise_template.md"
 FEEDS_PATH = REPO_ROOT / "feeds.json"
+
+# Prefixo de comando para revisar o texto comentando na issue.
+REVISE_COMMAND = "/revisar"
 
 # User-Agent "de navegador" — algumas docs devolvem 403 para clients sem UA.
 HTTP_USER_AGENT = os.environ.get(

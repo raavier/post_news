@@ -94,7 +94,11 @@ GEMINI_API_KEY=xxx python -m post_news.run_detect --dry-run --limit 1
   (há opções de `dry_run` e `limit`).
 - **Publicar**: abra a issue do rascunho, ajuste o texto se quiser, e adicione a label `approved`.
   O link da documentação entra como **1º comentário** do post (config. `LINK_PLACEMENT`).
-- **Regerar o texto** de uma issue com o prompt atual: Actions → *Regerar texto de uma issue*.
+- **Revisar o texto comentando na issue**: comente `/revisar <seu ajuste>` na própria issue
+  (ex.: `/revisar deixa mais técnico e tira a pergunta do final`). O Gemini reescreve o post
+  **atual** aplicando seu comentário e responde com o novo texto. Pode repetir quantas vezes
+  quiser — cada `/revisar` parte do texto mais recente. O card e a fonte são preservados.
+- **Regerar o texto** do zero (com o prompt padrão): Actions → *Regerar texto de uma issue*.
 - O estado fica em `state/seen.json` (chaves vistas + marcas já baselined).
 
 ## Adicionar/editar feeds (multi-marca)
