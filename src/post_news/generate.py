@@ -72,11 +72,57 @@ def _call_gemini(prompt: str) -> str:
     return text
 
 
+def _call_databricks(prompt: str) -> str:
+    """Fallback: endpoint OpenAI-compatible do Databricks Model Serving."""
+    url = f"{config.DATABRICKS_BASE_URL.rstrip('/')}/chat/completions"
+    payload = {
+        "model": config.DATABRICKS_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1024,
+        "temperature": 0.7,
+    }
+    resp = requests.post(
+        url,
+        headers={"Authorization": f"Bearer {config.databricks_token()}"},
+        json=payload,
+        timeout=config.HTTP_TIMEOUT,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    try:
+        text = (data["choices"][0]["message"]["content"] or "").strip()
+    except (KeyError, IndexError) as exc:  # pragma: no cover - resposta inesperada
+        raise RuntimeError(f"Resposta inesperada do Databricks: {data}") from exc
+    if not text:
+        raise RuntimeError(f"Databricks retornou texto vazio: {data}")
+    return text
+
+
+# Contador de chamadas ao fallback nesta execução (controle de custo por run).
+_databricks_calls = 0
+
+
+def _generate(prompt: str) -> str:
+    """Gera com o Gemini; se falhar, cai para o Databricks (limitado por execução)."""
+    global _databricks_calls
+    try:
+        return _call_gemini(prompt)
+    except Exception as exc:
+        if not config.databricks_enabled() or _databricks_calls >= config.DATABRICKS_MAX_CALLS:
+            raise
+        _databricks_calls += 1
+        print(
+            f"[fallback] Gemini falhou ({exc}); usando Databricks "
+            f"({_databricks_calls}/{config.DATABRICKS_MAX_CALLS})."
+        )
+        return _call_databricks(prompt)
+
+
 def generate_post_text(entry: Entry) -> str:
-    """Chama o Gemini e devolve o texto do post pronto para o LinkedIn."""
-    return _call_gemini(build_prompt(entry))
+    """Texto do post (Gemini, com fallback para o Databricks)."""
+    return _generate(build_prompt(entry))
 
 
 def revise_post_text(entry: Entry, current_post: str, feedback: str) -> str:
-    """Reescreve o post atual aplicando o feedback do usuário (comentário na issue)."""
-    return _call_gemini(build_revision_prompt(entry, current_post, feedback))
+    """Reescreve o post atual aplicando o feedback (Gemini, com fallback Databricks)."""
+    return _generate(build_revision_prompt(entry, current_post, feedback))

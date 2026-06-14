@@ -94,6 +94,23 @@ GEMINI_API_BASE = (
 # Pausa entre chamadas ao Gemini para respeitar o limite de req/min do tier gratuito.
 GEMINI_DELAY_SECONDS = float(os.environ.get("GEMINI_DELAY_SECONDS") or "7")
 
+# --- Databricks (fallback de geração — só usado se o Gemini falhar) ----------
+# Endpoint OpenAI-compatible do Databricks Model Serving. base_url termina em
+# /serving-endpoints; o cliente acrescenta /chat/completions.
+DATABRICKS_BASE_URL = os.environ.get("DATABRICKS_BASE_URL") or ""
+DATABRICKS_MODEL = os.environ.get("DATABRICKS_MODEL") or "databricks-claude-sonnet-4-6"
+# Teto de chamadas ao Databricks POR EXECUÇÃO (controle de custo). ~US$0,01/post,
+# então 20 ≈ US$0,20 por run. Ajuste via variável DATABRICKS_MAX_CALLS.
+DATABRICKS_MAX_CALLS = int(os.environ.get("DATABRICKS_MAX_CALLS") or "20")
+
+
+def databricks_token() -> str:
+    return os.environ.get("DATABRICKS_TOKEN") or ""
+
+
+def databricks_enabled() -> bool:
+    return bool(databricks_token() and DATABRICKS_BASE_URL)
+
 # --- Detecção ---------------------------------------------------------------
 # Máximo de rascunhos criados por execução (evita flood e estouro de rate limit).
 DEFAULT_LIMIT = int(os.environ.get("POST_NEWS_DEFAULT_LIMIT") or "10")
