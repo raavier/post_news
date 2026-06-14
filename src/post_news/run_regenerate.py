@@ -23,7 +23,7 @@ def run(issue_number: int) -> int:
     parsed = github_issues.parse_issue_body(issue.get("body") or "")
     key = parsed["key"]
 
-    # Tenta recuperar a entrada completa do feed (para ter o resumo original).
+    # Tenta recuperar a entrada completa do feed (para ter o resumo e as hashtags).
     entry = next((e for e in feed.fetch_all_entries() if e.key == key), None)
     if entry is None:
         title = issue.get("title", "")
@@ -31,7 +31,7 @@ def run(issue_number: int) -> int:
             title = title.split("] ", 1)[-1]
         entry = Entry(
             key=key, title=title, summary="", link=parsed.get("source") or "",
-            published="", platform=parsed.get("platform") or "Azure",
+            published="", brand=parsed.get("brand") or "Databricks", tag=parsed.get("tag", ""),
         )
         print("Entrada não encontrada no feed; usando título/fonte da issue.")
 

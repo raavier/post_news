@@ -16,12 +16,15 @@ def _load_template() -> str:
 
 def build_prompt(entry: Entry) -> str:
     template = _load_template()
+    hashtags = " ".join(entry.hashtags) if entry.hashtags else "(escolha 3 relevantes)"
     return template.format(
-        platform=entry.platform,
+        brand=entry.brand,
+        tag=entry.tag or entry.brand,
         title=entry.title,
         summary=entry.summary or "(sem resumo no feed)",
         published=entry.published or "(não informada)",
         link=entry.link or "(sem link)",
+        hashtags=hashtags,
     )
 
 
