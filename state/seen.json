@@ -825,11 +825,34 @@
     "databricks:Wed, 29 Oc:new-compute-policy-form-is-now-generally-available",
     "databricks:Wed, 29 Oc:request-logs-and-assessment-logs-tables-deprecated",
     "databricks:Wed, 29 Oc:supervisor-agent-now-supports-unity-catalog-functions-and-external-mcp-servers",
-    "databricks:Wed, 30 Ju:sharing-streaming-tables-and-materialized-views-is-ga"
+    "databricks:Wed, 30 Ju:sharing-streaming-tables-and-materialized-views-is-ga",
+    "microsoft-365:Fri, 01 Ma:microsoft-agent-365-now-generally-available-expands-capabilities-and-integration",
+    "microsoft-365:Mon, 11 Ma:new-and-improved-agent-governance-intelligent-workflows-and-connected-app-experi",
+    "microsoft-365:Thu, 23 Ap:copilots-agentic-capabilities-in-word-excel-and-powerpoint-are-generally-availab",
+    "microsoft-365:Thu, 28 Ma:introducing-a-new-design-for-microsoft-365-copilot",
+    "microsoft-365:Thu, 28 Ma:introducing-microsoft-365-business-with-copilot-the-new-standard-for-small-busin",
+    "microsoft-365:Tue, 02 Ju:announcing-the-new-work-iq-apis",
+    "microsoft-365:Tue, 02 Ju:introducing-microsoft-scout-your-always-on-personal-agent",
+    "microsoft-365:Tue, 05 Ma:copilot-cowork-from-conversation-to-action-across-skills-integrations-and-device",
+    "microsoft-365:Tue, 05 Ma:microsoft-365-copilot-human-agency-and-the-opportunity-for-every-organization",
+    "microsoft-365:Tue, 26 Ma:new-and-improved-computer-using-agents-a-new-workflows-experience-and-real-time-",
+    "power-platform:Fri, 29 Ma:build-power-pages-sites-with-ai-through-agentic-coding-tools-now-generally-avail",
+    "power-platform:Mon, 01 Ju:enhanced-data-model-and-bootstrap-5-now-available-for-dynamics-365-portal-templa",
+    "power-platform:Mon, 08 Ju:dataverse-mcp-server-understanding-the-new-tool-shape",
+    "power-platform:Thu, 04 Ju:advanced-connector-policies-are-generally-available",
+    "power-platform:Thu, 04 Ju:microsoft-dataverse-plugin-unleashing-coding-agents-on-the-enterprise-microsoft-",
+    "power-platform:Thu, 11 Ju:whats-new-in-power-platform-june-2026-feature-update",
+    "power-platform:Thu, 14 Ma:whats-new-in-power-platform-may-2026-feature-update",
+    "power-platform:Tue, 09 Ju:announcing-low-latency-sync-for-dataverse-to-fabric-in-ga",
+    "power-platform:Wed, 10 Ju:bulk-deletion-in-microsoft-dataverse-new-capabilities-for-data-lifecycle-managem",
+    "power-platform:Wed, 13 Ma:power-fx-user-defined-types-generally-available"
   ],
   "baselined_brands": [
     "Claude Code",
     "Codex",
-    "Databricks"
-  ]
+    "Databricks",
+    "Microsoft 365",
+    "Power Platform"
+  ],
+  "posted_keys": []
 }
