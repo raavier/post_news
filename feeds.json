@@ -6,14 +6,14 @@
     "hashtags": ["#Databricks", "#Azure", "#DataIntelligence"]
   },
   {
-    "brand": "Microsoft 365 Copilot",
-    "tag": "Microsoft 365",
+    "brand": "Microsoft 365",
+    "tag": "Microsoft",
     "page_url": "https://www.microsoft.com/en-us/microsoft-365/blog/product/microsoft-365-copilot/",
     "feed_candidates": [
       "https://www.microsoft.com/en-us/microsoft-365/blog/product/microsoft-365-copilot/feed/",
       "https://www.microsoft.com/en-us/microsoft-365/blog/feed/"
     ],
-    "hashtags": ["#Microsoft365Copilot", "#Copilot", "#Microsoft365"]
+    "hashtags": ["#Microsoft365", "#Copilot", "#Microsoft"]
   },
   {
     "brand": "Claude Code",
