@@ -854,5 +854,22 @@
     "Microsoft 365",
     "Power Platform"
   ],
-  "posted_keys": []
+  "posted_keys": [
+    "claude-code:2026-06-11:v2-1-173",
+    "claude-code:2026-06-12:v2-1-174",
+    "claude-code:2026-06-12:v2-1-175",
+    "claude-code:2026-06-12:v2-1-176",
+    "claude-code:2026-06-13:v2-1-177",
+    "codex:2026-06-12:0-140-0-alpha-15",
+    "codex:2026-06-12:0-140-0-alpha-16",
+    "codex:2026-06-13:0-140-0-alpha-17",
+    "codex:2026-06-13:0-140-0-alpha-18",
+    "codex:2026-06-14:0-140-0-alpha-19",
+    "databricks:Fri, 12 Ju:ai-runtime-cli-beta",
+    "databricks:Fri, 12 Ju:email-notifications-for-expiring-service-principal-tokens-beta",
+    "databricks:Fri, 12 Ju:managed-disaster-recovery-is-now-in-public-preview",
+    "databricks:Fri, 12 Ju:mission-critical-add-on-is-now-in-public-preview",
+    "databricks:Fri, 12 Ju:zerobus-ingest-will-soon-be-available-by-default-for-workspaces-with-the-complia",
+    "power-platform:Thu, 11 Ju:whats-new-in-power-platform-june-2026-feature-update"
+  ]
 }
