@@ -70,11 +70,11 @@ Se o Gemini falhar (ex.: 429/cota), o texto pode ser gerado pelos endpoints
 OpenAI-compatible do Databricks Model Serving — **só** quando o Gemini falha e com
 **teto por execução**. Em **Secrets**: `DATABRICKS_TOKEN` (seu PAT). Em **Variables**:
 - `DATABRICKS_BASE_URL` → ex.: `https://adb-116288240407984.4.azuredatabricks.net/serving-endpoints`
-- `DATABRICKS_MODEL` → ex.: `databricks-claude-sonnet-4-6`
+- `DATABRICKS_MODEL` → ex.: `databricks-claude-haiku-4-5` (bom custo-benefício; Sonnet/Opus é exagero para um post curto)
 - `DATABRICKS_MAX_CALLS` → teto de chamadas por execução (controle de custo).
 
-Custo aproximado: ~US$0,01 por post. Logo `DATABRICKS_MAX_CALLS` ≈ limite em centavos
-por run (20 ≈ US$0,20; 100 ≈ US$1). Sem o `DATABRICKS_TOKEN`, o fallback fica desligado.
+Custo aproximado com o Haiku: ~US$0,003 por post. Logo `DATABRICKS_MAX_CALLS` ≈ 3× o
+limite em centavos por run (20 ≈ US$0,06; 100 ≈ US$0,30). Sem o `DATABRICKS_TOKEN`, o fallback fica desligado.
 
 > ⚠️ **Token do LinkedIn expira em ~60 dias.** Quando expirar, rode o helper de novo
 > (ou implemente a renovação via refresh token) e atualize o secret.
