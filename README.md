@@ -92,6 +92,10 @@ GEMINI_API_KEY=xxx python -m post_news.run_detect --dry-run --limit 1
 
 - **Rodar a detecção manualmente**: Actions → *Detectar novidades Databricks* → *Run workflow*
   (há opções de `dry_run` e `limit`).
+- **Backfill (recuperar histórico recente)**: no mesmo *Run workflow*, marque `backfill`
+  e ajuste `days` (padrão 14) e `per_brand` (padrão 5). Cria até N issues por marca dos
+  últimos D dias, **ignorando o baseline**; o restante é marcado como visto. Use uma vez
+  ao adicionar feeds novos para "puxar" as novidades recentes sem enxurrada.
 - **Publicar**: abra a issue do rascunho, ajuste o texto se quiser, e adicione a label `approved`.
   O link da documentação entra como **1º comentário** do post (config. `LINK_PLACEMENT`).
 - **Revisar o texto comentando na issue**: comente `/revisar <seu ajuste>` na própria issue

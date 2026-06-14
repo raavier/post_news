@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from datetime import datetime, timedelta, timezone
 
 from . import config, feed, generate, github_issues, image
 
@@ -30,25 +31,52 @@ def _issue_title(brand: str, tag: str, title: str) -> str:
     return f"[{prefix}] {title}"[:250]
 
 
-def _select(entries, state):
-    """Retorna (candidatas_a_post, chaves_de_baseline, marcas_presentes)."""
+def _plan(entries, state, *, limit=None, days=None, per_brand=None, backfill=False):
+    """Decide o que vira post agora (`to_process`) e o que só é marcado como visto.
+
+    - Modo normal: só marcas já baselined e itens ainda não vistos; limite global.
+    - Modo backfill: itens dentro da janela de `days` dias, até `per_brand` por marca,
+      ignorando o baseline. O resto (mais antigo/excedente) é marcado como visto.
+    Em ambos, `entries` chega ordenado do mais novo p/ o mais antigo.
+    """
     brands_now = {e.brand for e in entries}
-    new_brands = brands_now - state.baselined_brands
-    candidates = [e for e in entries if e.brand not in new_brands and e.key not in state.seen]
-    baseline_keys = [e.key for e in entries if e.brand in new_brands]
-    return candidates, baseline_keys, brands_now, new_brands
+    if backfill:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days) if days else None
+        counts: dict[str, int] = {}
+        to_process = []
+        for e in entries:
+            if e.key in state.seen:
+                continue
+            if cutoff is not None:
+                d = feed._parse_date(e.published)
+                if d is None or d < cutoff:
+                    continue
+            if per_brand is not None and counts.get(e.brand, 0) >= per_brand:
+                continue
+            to_process.append(e)
+            counts[e.brand] = counts.get(e.brand, 0) + 1
+        if limit is not None:
+            to_process = to_process[:limit]
+    else:
+        new_brands = brands_now - state.baselined_brands
+        candidates = [e for e in entries if e.brand not in new_brands and e.key not in state.seen]
+        n = limit if limit is not None else config.DEFAULT_LIMIT
+        to_process = candidates[:n]
+
+    sel = {e.key for e in to_process}
+    baseline_keys = [e.key for e in entries if e.key not in sel]
+    return to_process, baseline_keys, brands_now
 
 
-def prepare(limit: int | None = None) -> int:
+def prepare(limit=None, days=None, per_brand=None, backfill=False) -> int:
     entries = feed.sort_newest_first(feed.fetch_all_entries())
     state = feed.load_state()
-    candidates, baseline_keys, brands_now, new_brands = _select(entries, state)
-    n = limit if limit is not None else config.DEFAULT_LIMIT
-    to_process = candidates[:n]
+    to_process, baseline_keys, brands_now = _plan(
+        entries, state, limit=limit, days=days, per_brand=per_brand, backfill=backfill
+    )
 
-    if new_brands:
-        print(f"Baseline (marcas novas, sem postar): {sorted(new_brands)} — {len(baseline_keys)} itens.")
-    print(f"Entradas: {len(entries)} | candidatas a post: {len(candidates)} | preparando: {len(to_process)}")
+    mode = f"backfill (até {per_brand}/marca, últimos {days}d)" if backfill else "normal"
+    print(f"Modo {mode}: {len(entries)} entradas | preparando: {len(to_process)} | baseline: {len(baseline_keys)}")
 
     prepared = []
     for i, entry in enumerate(to_process):
@@ -114,16 +142,14 @@ def create_issues() -> int:
     return 0
 
 
-def run(dry_run: bool = True, limit: int | None = None) -> int:
+def run(dry_run: bool = True, limit=None, days=None, per_brand=None, backfill=False) -> int:
     """Modo local/dry-run: imprime os rascunhos e renderiza os cards, sem criar issues."""
     entries = feed.sort_newest_first(feed.fetch_all_entries())
     state = feed.load_state()
-    candidates, _baseline, _brands, new_brands = _select(entries, state)
-    n = limit if limit is not None else config.DEFAULT_LIMIT
-    to_process = candidates[:n]
-    if new_brands:
-        print(f"[dry-run] Marcas novas que seriam baselined: {sorted(new_brands)}")
-    print(f"[dry-run] candidatas: {len(candidates)} | amostra: {len(to_process)}")
+    to_process, baseline_keys, _brands = _plan(
+        entries, state, limit=limit, days=days, per_brand=per_brand, backfill=backfill
+    )
+    print(f"[dry-run] amostra: {len(to_process)} | seria baselined: {len(baseline_keys)}")
 
     for entry in to_process:
         print(f"\n=== [{entry.brand}/{entry.tag}] {entry.title} ===")
@@ -132,18 +158,32 @@ def run(dry_run: bool = True, limit: int | None = None) -> int:
     return 0
 
 
+def _backfill_defaults(args):
+    """No modo backfill, aplica padrões amigáveis (14 dias, 5 por marca)."""
+    if not args.backfill:
+        return args.days, args.per_brand
+    return (args.days if args.days is not None else 14,
+            args.per_brand if args.per_brand is not None else 5)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Detecta novidades e cria rascunhos.")
     parser.add_argument("--dry-run", action="store_true", help="Não cria issues; só imprime.")
     parser.add_argument("--prepare", action="store_true", help="Fase 1: gera texto e cards.")
     parser.add_argument("--create-issues", action="store_true", help="Fase 2: cria as issues.")
-    parser.add_argument("--limit", type=int, default=None, help="Máximo de novidades por execução.")
+    parser.add_argument("--limit", type=int, default=None, help="Teto global de novidades por execução.")
+    parser.add_argument("--backfill", action="store_true",
+                        help="Recupera o histórico recente (janela + por marca), ignorando o baseline.")
+    parser.add_argument("--days", type=int, default=None, help="Janela em dias (backfill; padrão 14).")
+    parser.add_argument("--per-brand", type=int, default=None,
+                        help="Máximo de itens por marca (backfill; padrão 5).")
     args = parser.parse_args()
     if args.create_issues:
         return create_issues()
+    days, per_brand = _backfill_defaults(args)
     if args.prepare:
-        return prepare(limit=args.limit)
-    return run(dry_run=True, limit=args.limit)
+        return prepare(limit=args.limit, days=days, per_brand=per_brand, backfill=args.backfill)
+    return run(dry_run=True, limit=args.limit, days=days, per_brand=per_brand, backfill=args.backfill)
 
 
 if __name__ == "__main__":
