@@ -142,14 +142,35 @@ def create_issues() -> int:
     return 0
 
 
+def _print_diagnostics(entries) -> None:
+    """Mostra quais feeds resolveram e, por marca, total + item mais recente."""
+    print("\n--- Feeds (resolução) ---")
+    for s in config.load_sources():
+        url = feed.resolve_feed_url(s)
+        print(f"  {s.brand} [{s.badge}]: {url or '*** NÃO RESOLVEU ***'}")
+
+    by_brand: dict[str, list] = {}
+    for e in entries:
+        by_brand.setdefault(e.brand, []).append(e)
+    print("\n--- Entradas por marca ---")
+    if not by_brand:
+        print("  (nenhuma)")
+    for brand in sorted(by_brand):
+        items = by_brand[brand]
+        dates = [d for d in (feed._parse_date(i.published) for i in items) if d]
+        newest = max(dates).date().isoformat() if dates else "s/ data"
+        print(f"  {brand}: {len(items)} itens | mais recente: {newest}")
+
+
 def run(dry_run: bool = True, limit=None, days=None, per_brand=None, backfill=False) -> int:
     """Modo local/dry-run: imprime os rascunhos e renderiza os cards, sem criar issues."""
     entries = feed.sort_newest_first(feed.fetch_all_entries())
     state = feed.load_state()
+    _print_diagnostics(entries)
     to_process, baseline_keys, _brands = _plan(
         entries, state, limit=limit, days=days, per_brand=per_brand, backfill=backfill
     )
-    print(f"[dry-run] amostra: {len(to_process)} | seria baselined: {len(baseline_keys)}")
+    print(f"\n[dry-run] amostra: {len(to_process)} | seria baselined: {len(baseline_keys)}")
 
     for entry in to_process:
         print(f"\n=== [{entry.brand}/{entry.tag}] {entry.title} ===")
