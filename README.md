@@ -93,7 +93,30 @@ GEMINI_API_KEY=xxx python -m post_news.run_detect --dry-run --limit 1
 - **Rodar a detecção manualmente**: Actions → *Detectar novidades Databricks* → *Run workflow*
   (há opções de `dry_run` e `limit`).
 - **Publicar**: abra a issue do rascunho, ajuste o texto se quiser, e adicione a label `approved`.
-- O estado das novidades já processadas fica em `state/seen.json` (versionado).
+  O link da documentação entra como **1º comentário** do post (config. `LINK_PLACEMENT`).
+- **Regerar o texto** de uma issue com o prompt atual: Actions → *Regerar texto de uma issue*.
+- O estado fica em `state/seen.json` (chaves vistas + marcas já baselined).
+
+## Adicionar/editar feeds (multi-marca)
+
+As fontes ficam em **`feeds.json`** na raiz — edite pela interface do GitHub (sem mexer em código).
+Cada item:
+
+```json
+{
+  "brand": "GitHub Copilot",        // nome do produto: card, título e texto do post
+  "tag": "GitHub",                  // badge curto no card (opcional)
+  "feed_url": "https://github.blog/changelog/label/copilot/feed/",
+  "page_url": null,                  // alternativa: descobre o RSS a partir da página
+  "feed_candidates": [],             // URLs candidatas (fallback)
+  "hashtags": ["#GitHubCopilot", "#AI", "#DevTools"]
+}
+```
+
+- Use `feed_url` quando souber a URL do RSS/Atom; senão `page_url` (auto-descoberta) + `feed_candidates`.
+- **Dica**: repositórios do GitHub têm sempre um feed Atom em `.../releases.atom`.
+- Ao adicionar uma marca nova, a primeira execução faz **baseline** dela (marca o histórico
+  como visto, sem criar issues) — só os lançamentos seguintes viram posts. Sem enxurrada.
 
 ## Notas
 

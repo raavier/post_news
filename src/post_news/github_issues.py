@@ -45,7 +45,8 @@ def build_issue_body(entry: Entry, post_text: str, image_url: str, image_file: s
     meta = json.dumps(
         {
             "key": entry.key,
-            "platform": entry.platform,
+            "brand": entry.brand,
+            "tag": entry.tag,
             "source": entry.link,
             "image": image_url,
             "image_file": image_file,
@@ -54,7 +55,8 @@ def build_issue_body(entry: Entry, post_text: str, image_url: str, image_file: s
     )
     return (
         f"<!-- post-news:meta {meta} -->\n\n"
-        f"> 🤖 Rascunho gerado automaticamente a partir das release notes da Databricks ({entry.platform}).\n"
+        f"> 🤖 Rascunho gerado automaticamente a partir das novidades de {entry.brand}"
+        f"{(' (' + entry.tag + ')') if entry.tag else ''}.\n"
         f"> Edite o texto livremente entre os marcadores abaixo. Para **publicar**, adicione a label "
         f"`{config.LABEL_APPROVED}`. Para descartar, **feche** a issue.\n\n"
         f"## 📝 Texto do post (editável)\n\n"
@@ -80,7 +82,8 @@ def parse_issue_body(body: str) -> dict:
 
     return {
         "key": meta.get("key"),
-        "platform": meta.get("platform"),
+        "brand": meta.get("brand") or meta.get("platform") or "Databricks",
+        "tag": meta.get("tag", ""),
         "source": meta.get("source"),
         "image_url": meta.get("image"),
         "image_file": meta.get("image_file", ""),

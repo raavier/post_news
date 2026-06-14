@@ -10,7 +10,6 @@ issue via raw.githubusercontent.com.
 from __future__ import annotations
 
 import os
-import textwrap
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -80,25 +79,37 @@ def render_card(entry: Entry) -> bytes:
     # Barra de acento vertical à esquerda.
     draw.rectangle([0, 0, 12, h], fill=ACCENT)
 
-    # Rótulo superior.
+    # Rótulo superior (marca do produto).
     label_font = _font("bold", 30)
-    draw.text((margin, 60), "DATABRICKS  •  NOVIDADES", font=label_font, fill=ACCENT)
+    draw.text((margin, 60), f"{entry.brand.upper()}  •  NOVIDADES", font=label_font, fill=ACCENT)
 
-    # Badge de plataforma (AWS/Azure) no canto superior direito.
+    # Badge (tag/contexto) no canto superior direito.
     badge_font = _font("bold", 26)
-    badge = entry.platform.upper()
+    badge = (entry.tag or entry.brand).upper()
     bbox = draw.textbbox((0, 0), badge, font=badge_font)
     bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
     bx0, by0 = w - margin - bw - 32, 56
     draw.rounded_rectangle([bx0, by0, bx0 + bw + 32, by0 + bh + 22], radius=10, fill=(40, 52, 78))
     draw.text((bx0 + 16, by0 + 8), badge, font=badge_font, fill=TEXT)
 
-    # Título (manchete), com quebra de linha e tamanho de fonte adaptativo.
+    # Título (manchete): fonte adaptativa + quebra por LARGURA REAL medida.
     title = entry.title
-    title_size = 70 if len(title) < 60 else (58 if len(title) < 90 else 46)
+    title_size = 70 if len(title) < 50 else (58 if len(title) < 80 else 46)
     title_font = _font("bold", title_size)
-    wrap_chars = max(18, int(w * 0.92 / (title_size * 0.56)))
-    lines = textwrap.wrap(title, width=wrap_chars)[:5]
+    max_w = w - 2 * margin
+    lines: list[str] = []
+    cur = ""
+    for word in title.split():
+        trial = f"{cur} {word}".strip()
+        if draw.textlength(trial, font=title_font) <= max_w:
+            cur = trial
+        else:
+            if cur:
+                lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    lines = lines[:5]
     y = 160
     for line in lines:
         draw.text((margin, y), line, font=title_font, fill=TEXT)
@@ -148,7 +159,7 @@ def _main() -> None:
     title = sys.argv[1] if len(sys.argv) > 1 else "Databricks Genie app in Microsoft Teams (Beta)"
     entry = Entry(
         key="2026-06-10:test-card", title=title, summary="", link="",
-        published="2026-06-10", platform="Azure",
+        published="2026-06-10", brand="Databricks", tag="Azure",
     )
     path = save_card(entry)
     print(f"Card salvo: {path} ({path.stat().st_size} bytes)")

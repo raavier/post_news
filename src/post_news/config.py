@@ -6,6 +6,7 @@ rodar os módulos de feed/imagem localmente sem credenciais.
 """
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,8 +17,9 @@ STATE_PATH = REPO_ROOT / "state" / "seen.json"
 DRAFTS_DIR = REPO_ROOT / "drafts"
 WORK_DIR = REPO_ROOT / ".work"
 PROMPT_TEMPLATE_PATH = REPO_ROOT / "prompts" / "post_template.md"
+FEEDS_PATH = REPO_ROOT / "feeds.json"
 
-# User-Agent "de navegador" — a doc da Databricks devolve 403 para clients sem UA.
+# User-Agent "de navegador" — algumas docs devolvem 403 para clients sem UA.
 HTTP_USER_AGENT = os.environ.get(
     "POST_NEWS_USER_AGENT",
     "Mozilla/5.0 (compatible; post-news-bot/0.1; +https://github.com/raavier/post_news)",
@@ -27,33 +29,55 @@ HTTP_TIMEOUT = int(os.environ.get("POST_NEWS_HTTP_TIMEOUT") or "30")
 
 @dataclass(frozen=True)
 class FeedSource:
-    """Uma fonte de release notes."""
+    """Uma fonte de novidades (definida em feeds.json)."""
 
-    platform: str  # "AWS" | "Azure"
-    # URL direta do feed (quando conhecida). Para AWS descobrimos a partir da página.
-    feed_url: str | None = None
-    # Página de release notes usada para auto-descobrir o feed RSS (<link rel=alternate>).
-    page_url: str | None = None
-    # URLs candidatas de feed, tentadas se a auto-descoberta falhar.
-    feed_candidates: tuple[str, ...] = field(default_factory=tuple)
+    brand: str               # nome do produto (card, título, texto). Ex.: "Databricks"
+    tag: str = ""            # badge curto no card. Ex.: "AWS"/"Azure". Default = brand.
+    feed_url: str | None = None       # URL direta do feed (quando conhecida)
+    page_url: str | None = None       # página p/ auto-descobrir o RSS (<link rel=alternate>)
+    feed_candidates: tuple[str, ...] = field(default_factory=tuple)  # URLs candidatas
+    hashtags: tuple[str, ...] = field(default_factory=tuple)         # hashtags do post
+
+    @property
+    def badge(self) -> str:
+        return self.tag or self.brand
 
 
-# Fontes monitoradas. AWS + Azure desde o início (com dedupe no feed.py).
-SOURCES: tuple[FeedSource, ...] = (
+# Fontes embutidas (fallback se feeds.json não existir).
+_DEFAULT_SOURCES: tuple[FeedSource, ...] = (
     FeedSource(
-        platform="AWS",
+        brand="Databricks", tag="AWS",
         page_url="https://docs.databricks.com/aws/en/release-notes/",
-        feed_candidates=(
-            "https://docs.databricks.com/aws/en/release-notes/index.rss",
-            "https://docs.databricks.com/aws/en/release-notes/feed.xml",
-            "https://docs.databricks.com/aws/en/release-notes/product/index.rss",
-        ),
+        feed_candidates=("https://docs.databricks.com/aws/en/release-notes/index.rss",),
+        hashtags=("#Databricks", "#DataEngineering", "#AI"),
     ),
     FeedSource(
-        platform="Azure",
+        brand="Databricks", tag="Azure",
         feed_url="https://learn.microsoft.com/en-us/azure/databricks/feed.xml",
+        hashtags=("#Databricks", "#Azure", "#DataIntelligence"),
     ),
 )
+
+
+def load_sources() -> tuple[FeedSource, ...]:
+    """Carrega as fontes de feeds.json (editável pela UI do GitHub) ou usa os defaults."""
+    if not FEEDS_PATH.exists():
+        return _DEFAULT_SOURCES
+    data = json.loads(FEEDS_PATH.read_text(encoding="utf-8"))
+    sources: list[FeedSource] = []
+    for item in data:
+        sources.append(
+            FeedSource(
+                brand=item["brand"],
+                tag=item.get("tag", ""),
+                feed_url=item.get("feed_url"),
+                page_url=item.get("page_url"),
+                feed_candidates=tuple(item.get("feed_candidates", [])),
+                hashtags=tuple(item.get("hashtags", [])),
+            )
+        )
+    return tuple(sources)
+
 
 # --- Gemini -----------------------------------------------------------------
 # Usamos `or default` (não o 2º arg do .get) porque o GitHub Actions seta a env

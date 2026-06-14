@@ -1,0 +1,53 @@
+[
+  {
+    "brand": "Databricks",
+    "tag": "AWS",
+    "page_url": "https://docs.databricks.com/aws/en/release-notes/",
+    "feed_candidates": [
+      "https://docs.databricks.com/aws/en/release-notes/index.rss"
+    ],
+    "hashtags": ["#Databricks", "#DataEngineering", "#AI"]
+  },
+  {
+    "brand": "Databricks",
+    "tag": "Azure",
+    "feed_url": "https://learn.microsoft.com/en-us/azure/databricks/feed.xml",
+    "hashtags": ["#Databricks", "#Azure", "#DataIntelligence"]
+  },
+  {
+    "brand": "Azure Data Factory",
+    "tag": "Azure",
+    "page_url": "https://learn.microsoft.com/en-us/azure/data-factory/whats-new",
+    "feed_candidates": [
+      "https://learn.microsoft.com/en-us/azure/data-factory/feed.xml"
+    ],
+    "hashtags": ["#AzureDataFactory", "#DataEngineering", "#Azure"]
+  },
+  {
+    "brand": "GitHub Copilot",
+    "tag": "GitHub",
+    "feed_url": "https://github.blog/changelog/label/copilot/feed/",
+    "hashtags": ["#GitHubCopilot", "#AI", "#DevTools"]
+  },
+  {
+    "brand": "Claude Code",
+    "tag": "Anthropic",
+    "feed_url": "https://github.com/anthropics/claude-code/releases.atom",
+    "hashtags": ["#ClaudeCode", "#AI", "#DevTools"]
+  },
+  {
+    "brand": "Codex",
+    "tag": "OpenAI",
+    "feed_url": "https://github.com/openai/codex/releases.atom",
+    "hashtags": ["#Codex", "#OpenAI", "#DevTools"]
+  },
+  {
+    "brand": "Power Platform",
+    "tag": "Microsoft",
+    "page_url": "https://learn.microsoft.com/en-us/power-platform/admin/whats-new",
+    "feed_candidates": [
+      "https://learn.microsoft.com/en-us/power-platform/admin/feed.xml"
+    ],
+    "hashtags": ["#PowerPlatform", "#LowCode", "#Microsoft"]
+  }
+]
