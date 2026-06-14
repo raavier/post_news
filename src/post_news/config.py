@@ -92,7 +92,7 @@ GEMINI_API_BASE = (
     os.environ.get("GEMINI_API_BASE") or "https://generativelanguage.googleapis.com/v1beta"
 )
 # Pausa entre chamadas ao Gemini para respeitar o limite de req/min do tier gratuito.
-GEMINI_DELAY_SECONDS = float(os.environ.get("GEMINI_DELAY_SECONDS") or "5")
+GEMINI_DELAY_SECONDS = float(os.environ.get("GEMINI_DELAY_SECONDS") or "7")
 
 # --- Detecção ---------------------------------------------------------------
 # Máximo de rascunhos criados por execução (evita flood e estouro de rate limit).

@@ -6,21 +6,12 @@
     "hashtags": ["#Databricks", "#Azure", "#DataIntelligence"]
   },
   {
-    "brand": "Azure Data Factory",
-    "tag": "Azure",
-    "page_url": "https://learn.microsoft.com/en-us/azure/data-factory/whats-new",
-    "feed_candidates": [
-      "https://learn.microsoft.com/en-us/azure/data-factory/feed.xml"
-    ],
-    "hashtags": ["#AzureDataFactory", "#DataEngineering", "#Azure"]
-  },
-  {
     "brand": "Microsoft 365 Copilot",
     "tag": "Microsoft 365",
-    "page_url": "https://techcommunity.microsoft.com/category/microsoft365copilot/blog/microsoft365copilotblog",
+    "page_url": "https://www.microsoft.com/en-us/microsoft-365/blog/product/microsoft-365-copilot/",
     "feed_candidates": [
-      "https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss?board=Microsoft365CopilotBlog",
-      "https://techcommunity.microsoft.com/plugins/custom/microsoft/o365/custom-blog-rss?tid=-5888262158242517104&board=Microsoft365CopilotBlog&size=25"
+      "https://www.microsoft.com/en-us/microsoft-365/blog/product/microsoft-365-copilot/feed/",
+      "https://www.microsoft.com/en-us/microsoft-365/blog/feed/"
     ],
     "hashtags": ["#Microsoft365Copilot", "#Copilot", "#Microsoft365"]
   },

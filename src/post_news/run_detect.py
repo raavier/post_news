@@ -166,19 +166,17 @@ def _print_diagnostics(entries) -> None:
 
 
 def run(dry_run: bool = True, limit=None, days=None, per_brand=None, backfill=False) -> int:
-    """Modo local/dry-run: imprime os rascunhos e renderiza os cards, sem criar issues."""
+    """Modo dry-run: mostra o PLANO (feeds + itens que virariam post). Não chama o Gemini."""
     entries = feed.sort_newest_first(feed.fetch_all_entries())
     state = feed.load_state()
     _print_diagnostics(entries)
     to_process, baseline_keys, _brands = _plan(
         entries, state, limit=limit, days=days, per_brand=per_brand, backfill=backfill
     )
-    print(f"\n[dry-run] amostra: {len(to_process)} | seria baselined: {len(baseline_keys)}")
-
-    for entry in to_process:
-        print(f"\n=== [{entry.brand}/{entry.tag}] {entry.title} ===")
-        print(generate.generate_post_text(entry))
-        print(f"[card] {image.save_card(entry)}")
+    print(f"\n[dry-run] viraria post: {len(to_process)} | baseline: {len(baseline_keys)} "
+          f"(plano apenas — não chama o Gemini nem renderiza cards)")
+    for e in to_process:
+        print(f"  - [{e.brand}/{e.tag}] {(e.published or '')[:10]}  {e.title}")
     return 0
 
 
