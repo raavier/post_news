@@ -98,8 +98,49 @@ def upload_image(image_bytes: bytes, owner_urn: str) -> str:
     return image_urn
 
 
-def create_post(text: str, image_urn: str | None, author_urn: str, alt_text: str = "Card da novidade") -> str:
-    """Cria o post e retorna a URL pública do update."""
+def upload_document(doc_bytes: bytes, owner_urn: str) -> str:
+    """Sobe um documento (PDF do carrossel) e retorna o URN (urn:li:document:...).
+
+    Espelha upload_image, mas usa a Documents API. O documento vira carrossel
+    (slideshow com paginação "1/N") no feed.
+    """
+    init_resp = requests.post(
+        f"{config.LINKEDIN_API_BASE}/rest/documents?action=initializeUpload",
+        headers=_rest_headers(),
+        json={"initializeUploadRequest": {"owner": owner_urn}},
+        timeout=config.HTTP_TIMEOUT,
+    )
+    _check(init_resp, "initializeUpload de documento (LinkedIn-Version=" + config.LINKEDIN_VERSION + ")")
+    value = init_resp.json()["value"]
+    upload_url = value["uploadUrl"]
+    document_urn = value["document"]
+
+    put_resp = requests.put(
+        upload_url,
+        headers={
+            "Authorization": f"Bearer {config.linkedin_token()}",
+            "Content-Type": "application/octet-stream",
+        },
+        data=doc_bytes,
+        timeout=max(config.HTTP_TIMEOUT, 60),
+    )
+    _check(put_resp, "upload do documento (PUT)")
+    return document_urn
+
+
+def create_post(
+    text: str,
+    media_urn: str | None,
+    author_urn: str,
+    alt_text: str = "Card da novidade",
+    media_kind: str = "image",
+    title: str = "",
+) -> str:
+    """Cria o post e retorna a URL pública do update.
+
+    media_kind="image" usa content.media.altText; "document" (carrossel) usa
+    content.media.title (obrigatório no documento — é o rótulo do carrossel).
+    """
     body: dict = {
         "author": author_urn,
         "commentary": format_commentary(text, config.DATABRICKS_ORG_URN),
@@ -112,8 +153,10 @@ def create_post(text: str, image_urn: str | None, author_urn: str, alt_text: str
         "lifecycleState": "PUBLISHED",
         "isReshareDisabledByAuthor": False,
     }
-    if image_urn:
-        body["content"] = {"media": {"id": image_urn, "altText": alt_text}}
+    if media_urn and media_kind == "document":
+        body["content"] = {"media": {"id": media_urn, "title": title or "Novidade"}}
+    elif media_urn:
+        body["content"] = {"media": {"id": media_urn, "altText": alt_text}}
 
     resp = requests.post(
         f"{config.LINKEDIN_API_BASE}/rest/posts",
@@ -146,14 +189,26 @@ def add_comment(post_urn: str, text: str) -> None:
     _check(resp, "comentário com o link")
 
 
-def publish(text: str, image_bytes: bytes | None, comment_text: str | None = None) -> str:
-    """Sobe a imagem (se houver), publica o post e, opcionalmente, comenta o link.
+def publish(
+    text: str,
+    image_bytes: bytes | None,
+    comment_text: str | None = None,
+    doc_bytes: bytes | None = None,
+    doc_title: str = "",
+) -> str:
+    """Publica o post e, opcionalmente, comenta o link.
 
-    Se o comentário falhar, o post já está publicado — apenas avisamos (não falha).
+    Se doc_bytes for fornecido, publica como CARROSSEL (documento PDF); senão,
+    cai para a imagem única (se houver). Se o comentário falhar, o post já está
+    publicado — apenas avisamos (não falha).
     """
     author = config.linkedin_author_urn()
-    image_urn = upload_image(image_bytes, author) if image_bytes else None
-    post_urn = create_post(text, image_urn, author)
+    if doc_bytes:
+        document_urn = upload_document(doc_bytes, author)
+        post_urn = create_post(text, document_urn, author, media_kind="document", title=doc_title)
+    else:
+        image_urn = upload_image(image_bytes, author) if image_bytes else None
+        post_urn = create_post(text, image_urn, author)
     if comment_text and post_urn:
         try:
             add_comment(post_urn, comment_text)

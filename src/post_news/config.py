@@ -18,6 +18,7 @@ DRAFTS_DIR = REPO_ROOT / "drafts"
 WORK_DIR = REPO_ROOT / ".work"
 PROMPT_TEMPLATE_PATH = REPO_ROOT / "prompts" / "post_template.md"
 REVISE_TEMPLATE_PATH = REPO_ROOT / "prompts" / "revise_template.md"
+CAROUSEL_TEMPLATE_PATH = REPO_ROOT / "prompts" / "carousel_template.md"
 FEEDS_PATH = REPO_ROOT / "feeds.json"
 
 # Prefixo de comando para revisar o texto comentando na issue.
@@ -123,6 +124,17 @@ POLLINATIONS_BASE = os.environ.get("POLLINATIONS_BASE") or "https://image.pollin
 IMAGE_WIDTH = int(os.environ.get("POST_NEWS_IMAGE_WIDTH") or "1200")
 IMAGE_HEIGHT = int(os.environ.get("POST_NEWS_IMAGE_HEIGHT") or "627")  # 1.91:1, formato LinkedIn
 
+# --- Carrossel / documento (PDF) -------------------------------------------
+# Em 2026 o carrossel (documento PDF) é o formato de maior dwell time. Geramos o
+# PDF na fase prepare e versionamos em drafts/; a publicação como carrossel só
+# acontece se a issue tiver a label LABEL_CAROUSEL (senão, imagem única).
+CAROUSEL_ENABLED = (os.environ.get("CAROUSEL_ENABLED") or "true").lower() != "false"
+CAROUSEL_WIDTH = int(os.environ.get("POST_NEWS_CAROUSEL_WIDTH") or "1080")
+CAROUSEL_HEIGHT = int(os.environ.get("POST_NEWS_CAROUSEL_HEIGHT") or "1350")  # 4:5 vertical
+# Faixa-guia de slides: ADAPTATIVA ao tamanho do conteúdo (não fixa).
+CAROUSEL_MIN_SLIDES = int(os.environ.get("POST_NEWS_CAROUSEL_MIN_SLIDES") or "3")
+CAROUSEL_MAX_SLIDES = int(os.environ.get("POST_NEWS_CAROUSEL_MAX_SLIDES") or "10")
+
 # --- LinkedIn ---------------------------------------------------------------
 LINKEDIN_API_BASE = os.environ.get("LINKEDIN_API_BASE") or "https://api.linkedin.com"
 # Versão da API no formato YYYYMM (header LinkedIn-Version). Usamos o mês ANTERIOR
@@ -150,6 +162,9 @@ LABEL_PENDING = "pending-approval"
 LABEL_APPROVED = "approved"
 LABEL_REJECTED = "rejected"
 LABEL_PUBLISHED = "published"
+# Quando presente na issue aprovada, publica como carrossel (documento PDF) em
+# vez da imagem única. O PDF já foi gerado na detecção e versionado em drafts/.
+LABEL_CAROUSEL = "carrossel"
 
 
 def require_env(name: str) -> str:

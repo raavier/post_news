@@ -4,6 +4,9 @@ Usa a API REST do Gemini para não depender de SDK pesado.
 """
 from __future__ import annotations
 
+import json
+import re
+
 import requests
 
 from . import config
@@ -14,10 +17,6 @@ def _load_template(path=None) -> str:
     return (path or config.PROMPT_TEMPLATE_PATH).read_text(encoding="utf-8")
 
 
-def _hashtags(entry: Entry) -> str:
-    return " ".join(entry.hashtags) if entry.hashtags else "(escolha 3 relevantes)"
-
-
 def build_prompt(entry: Entry) -> str:
     return _load_template().format(
         brand=entry.brand,
@@ -26,7 +25,6 @@ def build_prompt(entry: Entry) -> str:
         summary=entry.summary or "(sem resumo no feed)",
         published=entry.published or "(não informada)",
         link=entry.link or "(sem link)",
-        hashtags=_hashtags(entry),
     )
 
 
@@ -37,10 +35,60 @@ def build_revision_prompt(entry: Entry, current_post: str, feedback: str) -> str
         tag=entry.tag or entry.brand,
         title=entry.title,
         summary=entry.summary or "(sem resumo no feed)",
-        hashtags=_hashtags(entry),
         current_post=current_post.strip() or "(vazio)",
         feedback=feedback.strip(),
     )
+
+
+def build_carousel_prompt(entry: Entry) -> str:
+    return _load_template(config.CAROUSEL_TEMPLATE_PATH).format(
+        brand=entry.brand,
+        tag=entry.tag or entry.brand,
+        title=entry.title,
+        summary=entry.summary or "(sem resumo no feed)",
+        published=entry.published or "(não informada)",
+        link=entry.link or "(sem link)",
+        min_slides=config.CAROUSEL_MIN_SLIDES,
+        max_slides=config.CAROUSEL_MAX_SLIDES,
+    )
+
+
+def _parse_slides(raw: str) -> list[dict]:
+    """Extrai a lista de slides do JSON devolvido pelo modelo.
+
+    Tolerante a cercas de código e a texto em volta: pega do primeiro '{' ao
+    último '}'. Normaliza cada slide para {'title', 'body'} (strings).
+    """
+    text = raw.strip()
+    text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end == -1 or end < start:
+        raise RuntimeError(f"Resposta do carrossel não contém JSON: {raw[:300]}")
+    data = json.loads(text[start : end + 1])
+    raw_slides = data.get("slides") if isinstance(data, dict) else data
+    if not isinstance(raw_slides, list) or not raw_slides:
+        raise RuntimeError(f"JSON do carrossel sem lista 'slides': {raw[:300]}")
+    slides: list[dict] = []
+    for s in raw_slides:
+        if not isinstance(s, dict):
+            continue
+        slides.append(
+            {
+                "title": str(s.get("title", "")).strip(),
+                "body": str(s.get("body", "")).strip(),
+                "code": str(s.get("code", "")).strip(),
+                "lang": str(s.get("lang", "")).strip(),
+            }
+        )
+    slides = [s for s in slides if s["title"] or s["body"] or s["code"]]
+    if not slides:
+        raise RuntimeError(f"JSON do carrossel sem slides úteis: {raw[:300]}")
+    return slides[: config.CAROUSEL_MAX_SLIDES]
+
+
+def generate_carousel_slides(entry: Entry) -> list[dict]:
+    """Gera os slides do carrossel (lista de {'title','body'}) via Gemini/Databricks."""
+    return _parse_slides(_generate(build_carousel_prompt(entry)))
 
 
 def _call_gemini(prompt: str) -> str:

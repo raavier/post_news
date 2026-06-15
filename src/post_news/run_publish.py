@@ -14,7 +14,11 @@ from __future__ import annotations
 import argparse
 import os
 
-from . import config, github_issues, image, linkedin
+from . import carousel, config, github_issues, image, linkedin
+
+
+def _has_label(issue: dict, name: str) -> bool:
+    return any((lb.get("name") if isinstance(lb, dict) else lb) == name for lb in issue.get("labels", []))
 
 
 def run(issue_number: int, dry_run: bool = False) -> int:
@@ -23,22 +27,36 @@ def run(issue_number: int, dry_run: bool = False) -> int:
     text = parsed["post_text"]
     image_file = parsed.get("image_file")
     image_url = parsed.get("image_url")
+    doc_file = parsed.get("doc_file")
     source = parsed.get("source") or ""
+
+    # Carrossel só quando a label estiver presente E houver PDF gerado para a issue.
+    as_carousel = _has_label(issue, config.LABEL_CAROUSEL) and bool(doc_file)
 
     print(f"Publicando issue #{issue_number}: {issue.get('title')}")
 
-    # Preferimos o PNG local (versionado em drafts/, presente no checkout);
-    # se faltar, caímos para baixar pela raw URL (repo público).
+    doc_bytes = None
     image_bytes = None
-    if image_file:
+    if as_carousel:
         try:
-            image_bytes = image.load_card_bytes(image_file)
-            print(f"Imagem: drafts/{image_file} ({len(image_bytes)} bytes)")
+            doc_bytes = carousel.load_doc_bytes(doc_file)
+            print(f"Carrossel: drafts/{doc_file} ({len(doc_bytes)} bytes)")
         except FileNotFoundError:
-            print(f"Card local drafts/{image_file} não encontrado; tentando raw URL...")
-    if image_bytes is None and image_url:
-        image_bytes = image.download_image(image_url)
-        print(f"Imagem (download): {image_url}")
+            print(f"PDF local drafts/{doc_file} não encontrado; caindo para imagem única.")
+            as_carousel = False
+
+    if not as_carousel:
+        # Preferimos o PNG local (versionado em drafts/, presente no checkout);
+        # se faltar, caímos para baixar pela raw URL (repo público).
+        if image_file:
+            try:
+                image_bytes = image.load_card_bytes(image_file)
+                print(f"Imagem: drafts/{image_file} ({len(image_bytes)} bytes)")
+            except FileNotFoundError:
+                print(f"Card local drafts/{image_file} não encontrado; tentando raw URL...")
+        if image_bytes is None and image_url:
+            image_bytes = image.download_image(image_url)
+            print(f"Imagem (download): {image_url}")
 
     # Decide onde entra o link da documentação (ver config.LINK_PLACEMENT).
     text_to_post = text
@@ -52,11 +70,17 @@ def run(issue_number: int, dry_run: bool = False) -> int:
         print("\n[dry-run] Texto que seria publicado:\n")
         print(text_to_post)
         print(f"\n[dry-run] Comentário com link: {comment_text or '(nenhum)'}")
-        print(f"[dry-run] Imagem: {len(image_bytes) if image_bytes else 0} bytes")
+        print(f"[dry-run] Formato: {'carrossel (PDF)' if as_carousel else 'imagem'}")
+        size = len(doc_bytes) if as_carousel else (len(image_bytes) if image_bytes else 0)
+        print(f"[dry-run] Mídia: {size} bytes")
         return 0
 
-    url = linkedin.publish(text_to_post, image_bytes, comment_text=comment_text)
-    print(f"Publicado no LinkedIn: {url or '(URL não retornada nos headers)'}")
+    url = linkedin.publish(
+        text_to_post, image_bytes, comment_text=comment_text,
+        doc_bytes=doc_bytes, doc_title=issue.get("title") or "Novidade",
+    )
+    print(f"Publicado no LinkedIn ({'carrossel' if as_carousel else 'imagem'}): "
+          f"{url or '(URL não retornada nos headers)'}")
 
     comment = (
         f"✅ Publicado no LinkedIn com sucesso.\n\n"
