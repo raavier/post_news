@@ -19,6 +19,12 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Fallback de geração (só usado se o Gemini falhar, ex.: 429/cota) — mesma
+      # rede de proteção do detect.yml e do revise.yml.
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_BASE_URL: ${{ vars.DATABRICKS_BASE_URL }}
+      DATABRICKS_MODEL: ${{ vars.DATABRICKS_MODEL }}
+      DATABRICKS_MAX_CALLS: ${{ vars.DATABRICKS_MAX_CALLS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,3 +33,15 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m post_news.run_regenerate --issue "${{ inputs.issue_number }}"
+
+      - name: Reportar falha na issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(${{ inputs.issue_number }}),
+              body: "❌ Falha ao regerar o texto. Veja os logs do workflow **Regerar texto de uma issue** (cota do Gemini? token?). Tente de novo em alguns minutos."
+            });
