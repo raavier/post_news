@@ -14,10 +14,6 @@ def _load_template(path=None) -> str:
     return (path or config.PROMPT_TEMPLATE_PATH).read_text(encoding="utf-8")
 
 
-def _hashtags(entry: Entry) -> str:
-    return " ".join(entry.hashtags) if entry.hashtags else "(escolha 3 relevantes)"
-
-
 def build_prompt(entry: Entry) -> str:
     return _load_template().format(
         brand=entry.brand,
@@ -26,7 +22,6 @@ def build_prompt(entry: Entry) -> str:
         summary=entry.summary or "(sem resumo no feed)",
         published=entry.published or "(não informada)",
         link=entry.link or "(sem link)",
-        hashtags=_hashtags(entry),
     )
 
 
@@ -37,7 +32,6 @@ def build_revision_prompt(entry: Entry, current_post: str, feedback: str) -> str
         tag=entry.tag or entry.brand,
         title=entry.title,
         summary=entry.summary or "(sem resumo no feed)",
-        hashtags=_hashtags(entry),
         current_post=current_post.strip() or "(vazio)",
         feedback=feedback.strip(),
     )
