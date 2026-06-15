@@ -73,9 +73,14 @@ def _parse_slides(raw: str) -> list[dict]:
         if not isinstance(s, dict):
             continue
         slides.append(
-            {"title": str(s.get("title", "")).strip(), "body": str(s.get("body", "")).strip()}
+            {
+                "title": str(s.get("title", "")).strip(),
+                "body": str(s.get("body", "")).strip(),
+                "code": str(s.get("code", "")).strip(),
+                "lang": str(s.get("lang", "")).strip(),
+            }
         )
-    slides = [s for s in slides if s["title"] or s["body"]]
+    slides = [s for s in slides if s["title"] or s["body"] or s["code"]]
     if not slides:
         raise RuntimeError(f"JSON do carrossel sem slides úteis: {raw[:300]}")
     return slides[: config.CAROUSEL_MAX_SLIDES]

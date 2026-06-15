@@ -1,8 +1,9 @@
-"""Geração do card de imagem LOCALMENTE com Pillow (custo 0, sem API externa).
+"""Geração do card de imagem (PNG) LOCALMENTE, sem API externa.
 
-Antes usávamos o Pollinations, mas ele passou a retornar HTTP 402 (Payment
-Required) — deixou de ser gratuito de forma confiável. Renderizar o card aqui
-elimina dependência de rede, rate limits e custos, e é determinístico.
+Antes desenhávamos com Pillow; agora montamos HTML/CSS e renderizamos com
+WeasyPrint (PDF) + PyMuPDF (rasteriza para PNG). Isso unifica a identidade
+visual com o carrossel (ver render.py): tema claro, acento coral, título com
+destaques. Continua determinístico, custo 0 e sem rede.
 
 Como o repositório é público, o PNG versionado em drafts/ renderiza inline na
 issue via raw.githubusercontent.com.
@@ -13,35 +14,8 @@ import os
 import re
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
-
-from . import config
+from . import config, render
 from .feed import Entry, iso_date
-
-# Cores (tema escuro com acento vermelho estilo Databricks).
-BG_TOP = (15, 20, 32)
-BG_BOTTOM = (28, 38, 60)
-ACCENT = (255, 54, 33)       # vermelho Databricks
-TEXT = (245, 247, 250)
-MUTED = (150, 162, 184)
-
-_FONT_CANDIDATES = {
-    "bold": [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/Library/Fonts/Arial Bold.ttf",
-    ],
-    "regular": [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/Library/Fonts/Arial.ttf",
-    ],
-}
-
-
-def _font(kind: str, size: int) -> ImageFont.FreeTypeFont:
-    for path in _FONT_CANDIDATES.get(kind, []):
-        if os.path.exists(path):
-            return ImageFont.truetype(path, size)
-    return ImageFont.load_default()
 
 
 def card_filename(entry: Entry) -> str:
@@ -62,74 +36,46 @@ def raw_url_for(entry: Entry) -> str:
     return f"https://raw.githubusercontent.com/{repo}/{branch}/drafts/{card_filename(entry)}"
 
 
-def _gradient(w: int, h: int) -> Image.Image:
-    base = Image.new("RGB", (w, h), BG_TOP)
-    top = Image.new("RGB", (w, h), BG_TOP)
-    bottom = Image.new("RGB", (w, h), BG_BOTTOM)
-    mask = Image.new("L", (w, h))
-    mask_data = [int(255 * (y / h)) for y in range(h) for _ in range(w)]
-    mask.putdata(mask_data)
-    base = Image.composite(bottom, top, mask)
-    return base
+def build_html(entry: Entry) -> str:
+    w, h = config.IMAGE_WIDTH, config.IMAGE_HEIGHT
+    title = render.highlight_markup(entry.title)
+    eyebrow = render.highlight_markup(entry.brand.upper())
+    badge = render.highlight_markup((entry.tag or entry.brand).upper())
+    date = iso_date(entry.published) or ""
+    brand = render.highlight_markup(entry.brand.lower())
+    css = render.theme_css() + f"""
+    @page {{ size: {w}px {h}px; margin: 0; }}
+    .surface {{ width: {w}px; height: {h}px; }}
+    .content {{ padding: 56px 70px; }}
+    .blob.tl {{ width: 300px; height: 300px; top: -210px; left: -110px; }}
+    .blob.br {{ width: 320px; height: 320px; bottom: -210px; right: -110px; }}
+    .top {{ display: flex; justify-content: flex-end; align-items: center; min-height: 44px; }}
+    .badge {{ background: {render.INK}; color: {render.WHITE}; font-size: 22px;
+              font-weight: bold; padding: 7px 16px; border-radius: 10px; }}
+    .middle {{ flex: 1; display: flex; flex-direction: column; justify-content: center; }}
+    .kicker {{ color: {render.CORAL}; font-weight: bold; letter-spacing: 1px;
+               font-size: 24px; margin-bottom: 16px; }}
+    .title {{ font-size: 64px; }}
+    .foot {{ display: flex; justify-content: space-between; align-items: center; }}
+    .foot .brandmark {{ font-size: 30px; }}
+    .foot .meta {{ color: {render.BODY}; font-size: 24px; }}
+    """
+    body = (
+        '<div class="surface"><div class="blob tl"></div><div class="blob br"></div>'
+        '<div class="content">'
+        f'<div class="top"><span class="badge">{badge}</span></div>'
+        f'<div class="middle"><div class="kicker">{eyebrow} • NOVIDADES</div>'
+        f'<div class="title">{title}</div></div>'
+        f'<div class="foot"><span class="brandmark">{brand}</span>'
+        f'<span class="meta">{date}</span></div>'
+        "</div></div>"
+    )
+    return f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{css}</style></head><body>{body}</body></html>"
 
 
 def render_card(entry: Entry) -> bytes:
     """Renderiza o card e devolve os bytes PNG."""
-    w, h = config.IMAGE_WIDTH, config.IMAGE_HEIGHT
-    img = _gradient(w, h)
-    draw = ImageDraw.Draw(img)
-
-    margin = 70
-    # Barra de acento vertical à esquerda.
-    draw.rectangle([0, 0, 12, h], fill=ACCENT)
-
-    # Rótulo superior (marca do produto).
-    label_font = _font("bold", 30)
-    draw.text((margin, 60), f"{entry.brand.upper()}  •  NOVIDADES", font=label_font, fill=ACCENT)
-
-    # Badge (tag/contexto) no canto superior direito.
-    badge_font = _font("bold", 26)
-    badge = (entry.tag or entry.brand).upper()
-    bbox = draw.textbbox((0, 0), badge, font=badge_font)
-    bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    bx0, by0 = w - margin - bw - 32, 56
-    draw.rounded_rectangle([bx0, by0, bx0 + bw + 32, by0 + bh + 22], radius=10, fill=(40, 52, 78))
-    draw.text((bx0 + 16, by0 + 8), badge, font=badge_font, fill=TEXT)
-
-    # Título (manchete): fonte adaptativa + quebra por LARGURA REAL medida.
-    title = entry.title
-    title_size = 70 if len(title) < 50 else (58 if len(title) < 80 else 46)
-    title_font = _font("bold", title_size)
-    max_w = w - 2 * margin
-    lines: list[str] = []
-    cur = ""
-    for word in title.split():
-        trial = f"{cur} {word}".strip()
-        if draw.textlength(trial, font=title_font) <= max_w:
-            cur = trial
-        else:
-            if cur:
-                lines.append(cur)
-            cur = word
-    if cur:
-        lines.append(cur)
-    lines = lines[:5]
-    y = 160
-    for line in lines:
-        draw.text((margin, y), line, font=title_font, fill=TEXT)
-        y += int(title_size * 1.18)
-
-    # Rodapé.
-    footer_font = _font("regular", 26)
-    date = iso_date(entry.published)
-    footer = f"Saiba mais na documentação  •  {date}".strip(" •")
-    draw.text((margin, h - 70), footer, font=footer_font, fill=MUTED)
-
-    from io import BytesIO
-
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
+    return render.render_png_from_html(build_html(entry))
 
 
 def save_card(entry: Entry) -> Path:
@@ -160,7 +106,7 @@ def _main() -> None:
     """Diagnóstico local: renderiza um card de teste."""
     import sys
 
-    title = sys.argv[1] if len(sys.argv) > 1 else "Databricks Genie app in Microsoft Teams (Beta)"
+    title = sys.argv[1] if len(sys.argv) > 1 else "Databricks Genie app no Microsoft Teams (Beta)"
     entry = Entry(
         key="2026-06-10:test-card", title=title, summary="", link="",
         published="2026-06-10", brand="Databricks", tag="Azure",

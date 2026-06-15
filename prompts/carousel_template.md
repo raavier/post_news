@@ -10,6 +10,10 @@ PRINCÍPIOS
 - Linguagem humana e direta. Sem jargão de marketing (revolucionário, game-changer, poderoso) e sem emojis.
 - Não invente fatos além da fonte. Se algo não estiver claro, fique no genérico.
 
+DESTAQUES E CÓDIGO
+- Para destacar 1 ou 2 termos-chave de um título, envolva-os em colchetes duplos: [[termo]]. Use com parcimônia (no máximo 2 por título), nunca no corpo inteiro.
+- Se — e SOMENTE se — a novidade envolver um comando/sintaxe concreto que você tem certeza que existe (ex.: um SQL, um trecho de config), inclua-o no campo "code" de um slide, com "lang" (ex.: "sql", "python"). NUNCA invente código: na dúvida, deixe "code" vazio.
+
 QUANTIDADE DE SLIDES (adaptativa)
 - O número de slides DEPENDE do tamanho do conteúdo: novidade simples rende menos slides; novidade densa rende mais.
 - Use entre {min_slides} e {max_slides} slides no total (capa e pergunta inclusas). NÃO force um número fixo — use só os slides que o conteúdo justifica.
@@ -17,10 +21,11 @@ QUANTIDADE DE SLIDES (adaptativa)
 FORMATO DA RESPOSTA (importante)
 Responda APENAS com um objeto JSON válido, sem comentários, sem markdown e sem cercas de código. Estrutura exata:
 
-{{"slides": [{{"title": "título curto do slide", "body": "texto do slide (1 a 3 frases curtas; pode ser vazio na capa)"}}]}}
+{{"slides": [{{"title": "título curto (pode ter [[destaque]])", "body": "texto do slide (1 a 3 frases curtas; pode ser vazio)", "code": "", "lang": ""}}]}}
 
 - "title": curto (até ~60 caracteres). Na capa, é o gancho.
 - "body": o conteúdo do slide. No último slide, é a pergunta aberta.
+- "code"/"lang": opcionais; só quando houver um comando real. Deixe "" se não houver.
 
 DADOS DA NOVIDADE
 - Produto/marca: {brand}
