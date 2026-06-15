@@ -10,12 +10,13 @@ issue via raw.githubusercontent.com.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 from . import config
-from .feed import Entry
+from .feed import Entry, iso_date
 
 # Cores (tema escuro com acento vermelho estilo Databricks).
 BG_TOP = (15, 20, 32)
@@ -44,7 +45,10 @@ def _font(kind: str, size: int) -> ImageFont.FreeTypeFont:
 
 
 def card_filename(entry: Entry) -> str:
-    return entry.key.replace(":", "_").replace("/", "_") + ".png"
+    # Sanitiza para um nome de arquivo/URL seguro (sem espaços, vírgulas, etc.).
+    raw = entry.key.replace(":", "_").replace("/", "_")
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "-", raw).strip("-_")
+    return f"{safe}.png"
 
 
 def card_path(entry: Entry) -> Path:
@@ -117,7 +121,7 @@ def render_card(entry: Entry) -> bytes:
 
     # Rodapé.
     footer_font = _font("regular", 26)
-    date = (entry.published or "")[:10]
+    date = iso_date(entry.published)
     footer = f"Saiba mais na documentação  •  {date}".strip(" •")
     draw.text((margin, h - 70), footer, font=footer_font, fill=MUTED)
 

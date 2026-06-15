@@ -176,7 +176,7 @@ def run(dry_run: bool = True, limit=None, days=None, per_brand=None, backfill=Fa
     print(f"\n[dry-run] viraria post: {len(to_process)} | baseline: {len(baseline_keys)} "
           f"(plano apenas — não chama o Gemini nem renderiza cards)")
     for e in to_process:
-        print(f"  - [{e.brand}/{e.tag}] {(e.published or '')[:10]}  {e.title}")
+        print(f"  - [{e.brand}/{e.tag}] {feed.iso_date(e.published) or '?'}  {e.title}")
     return 0
 
 
