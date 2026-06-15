@@ -41,7 +41,14 @@ def _repo_url(path: str) -> str:
 
 # --- Montagem / parse do corpo ---------------------------------------------
 
-def build_issue_body(entry: Entry, post_text: str, image_url: str, image_file: str = "") -> str:
+def build_issue_body(
+    entry: Entry,
+    post_text: str,
+    image_url: str,
+    image_file: str = "",
+    doc_url: str = "",
+    doc_file: str = "",
+) -> str:
     meta = json.dumps(
         {
             "key": entry.key,
@@ -50,19 +57,35 @@ def build_issue_body(entry: Entry, post_text: str, image_url: str, image_file: s
             "source": entry.link,
             "image": image_url,
             "image_file": image_file,
+            "doc": doc_url,
+            "doc_file": doc_file,
         },
         ensure_ascii=False,
+    )
+    carousel_line = (
+        f"> Para publicar como **carrossel** (PDF, maior alcance) em vez da imagem, "
+        f"adicione também a label `{config.LABEL_CAROUSEL}`.\n"
+        if doc_file
+        else ""
+    )
+    carousel_section = (
+        f"## 🎠 Carrossel (PDF)\n\n"
+        f"[Baixar o PDF do carrossel]({doc_url})\n\n"
+        if doc_url
+        else ""
     )
     return (
         f"<!-- post-news:meta {meta} -->\n\n"
         f"> 🤖 Rascunho gerado automaticamente a partir das novidades de {entry.brand}"
         f"{(' (' + entry.tag + ')') if entry.tag else ''}.\n"
         f"> Edite o texto livremente entre os marcadores abaixo. Para **publicar**, adicione a label "
-        f"`{config.LABEL_APPROVED}`. Para descartar, **feche** a issue.\n\n"
+        f"`{config.LABEL_APPROVED}`. Para descartar, **feche** a issue.\n"
+        f"{carousel_line}\n"
         f"## 📝 Texto do post (editável)\n\n"
         f"<!-- POST:START -->\n{post_text}\n<!-- POST:END -->\n\n"
         f"## 🖼️ Imagem do card\n\n"
         f"![card]({image_url})\n\n"
+        f"{carousel_section}"
         f"## 🔗 Fonte\n\n"
         f"{entry.link}\n"
     )
@@ -87,6 +110,8 @@ def parse_issue_body(body: str) -> dict:
         "source": meta.get("source"),
         "image_url": meta.get("image"),
         "image_file": meta.get("image_file", ""),
+        "doc_url": meta.get("doc", ""),
+        "doc_file": meta.get("doc_file", ""),
         "post_text": post_text,
     }
 
@@ -110,6 +135,7 @@ def ensure_labels() -> None:
     ensure_label(config.LABEL_APPROVED, "0e8a16", "Aprovado para publicar no LinkedIn")
     ensure_label(config.LABEL_REJECTED, "b60205", "Descartado")
     ensure_label(config.LABEL_PUBLISHED, "5319e7", "Publicado no LinkedIn")
+    ensure_label(config.LABEL_CAROUSEL, "1d76db", "Publicar como carrossel (PDF) em vez de imagem")
 
 
 def create_issue(title: str, body: str, labels: list[str]) -> dict:

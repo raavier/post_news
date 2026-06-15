@@ -21,7 +21,7 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-from . import config, feed, generate, github_issues, image
+from . import carousel, config, feed, generate, github_issues, image
 
 PENDING_PATH = config.WORK_DIR / "pending.json"
 
@@ -89,11 +89,27 @@ def prepare(limit=None, days=None, per_brand=None, backfill=False) -> int:
             print(f"Geração interrompida em '{entry.title}': {exc}")
             break
         image.save_card(entry)
+
+        # Carrossel (PDF): formato de maior alcance. Gerado sempre que habilitado;
+        # a escolha de publicar como carrossel fica para a aprovação (label). Uma
+        # falha aqui NÃO derruba o post — só fica sem o PDF (cai para imagem).
+        doc_url = doc_file = ""
+        if config.CAROUSEL_ENABLED:
+            try:
+                time.sleep(config.GEMINI_DELAY_SECONDS)  # respeita o rate limit do tier free
+                slides = generate.generate_carousel_slides(entry)
+                carousel.save_carousel(entry, slides)
+                doc_url, doc_file = carousel.raw_url_for(entry), carousel.doc_filename(entry)
+                print(f"  carrossel: {len(slides)} slides -> {doc_file}")
+            except Exception as exc:  # noqa: BLE001 - carrossel é opcional
+                print(f"  carrossel pulado ({exc}); seguirá só com imagem.")
+
         prepared.append(
             {
                 "key": entry.key, "title": entry.title, "brand": entry.brand,
                 "tag": entry.tag, "link": entry.link, "post_text": post_text,
                 "image_url": image.raw_url_for(entry), "image_file": image.card_filename(entry),
+                "doc_url": doc_url, "doc_file": doc_file,
             }
         )
         if i < len(to_process) - 1:
@@ -129,7 +145,10 @@ def create_issues() -> int:
             published="", brand=item["brand"], tag=item.get("tag", ""),
         )
         title = _issue_title(entry.brand, entry.tag, entry.title)
-        body = github_issues.build_issue_body(entry, item["post_text"], item["image_url"], item["image_file"])
+        body = github_issues.build_issue_body(
+            entry, item["post_text"], item["image_url"], item["image_file"],
+            doc_url=item.get("doc_url", ""), doc_file=item.get("doc_file", ""),
+        )
         issue = github_issues.create_issue(title, body, [config.LABEL_PENDING])
         print(f"Issue criada: #{issue['number']} -> {issue['html_url']}")
         state.seen.add(entry.key)
