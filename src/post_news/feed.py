@@ -102,8 +102,8 @@ def _slugify(text: str) -> str:
 
 
 def _make_key(brand: str, title: str, published: str) -> str:
-    """Chave estável e única por marca: slug(marca):dia:slug(título)."""
-    day = (published or "")[:10]
+    """Chave estável e única por marca: slug(marca):AAAA-MM-DD:slug(título)."""
+    day = iso_date(published)
     base = f"{day}:{_slugify(title)}" if day else _slugify(title)
     return f"{_slugify(brand)}:{base}"
 
@@ -208,6 +208,17 @@ def _parse_date(value: str) -> datetime | None:
     if dt is not None and dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+def iso_date(value: str) -> str:
+    """Normaliza qualquer data (RFC822/ISO) para 'AAAA-MM-DD'; '' se não parsear.
+
+    Crucial: feeds RSS trazem RFC822 ('Fri, 12 Jun 2026 ...'); pegar os 10
+    primeiros caracteres (' Fri, 12 Ju') colocava espaços/vírgulas na chave e,
+    por consequência, no nome do arquivo e na URL do card (que quebrava).
+    """
+    dt = _parse_date(value)
+    return dt.strftime("%Y-%m-%d") if dt else ""
 
 
 def sort_newest_first(entries: list[Entry]) -> list[Entry]:
