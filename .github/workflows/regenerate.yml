@@ -22,9 +22,9 @@ jobs:
       # Fallback de geração (só usado se o Gemini falhar, ex.: 429/cota) — mesma
       # rede de proteção do detect.yml e do revise.yml.
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-      DATABRICKS_BASE_URL: ${{ vars.DATABRICKS_BASE_URL }}
-      DATABRICKS_MODEL: ${{ vars.DATABRICKS_MODEL }}
-      DATABRICKS_MAX_CALLS: ${{ vars.DATABRICKS_MAX_CALLS }}
+      DATABRICKS_BASE_URL: ${{ secrets.DATABRICKS_BASE_URL }}
+      DATABRICKS_MODEL: ${{ secrets.DATABRICKS_MODEL }}
+      DATABRICKS_MAX_CALLS: ${{ secrets.DATABRICKS_MAX_CALLS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
