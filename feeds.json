@@ -22,12 +22,6 @@
     "hashtags": ["#ClaudeCode", "#AI", "#DevTools"]
   },
   {
-    "brand": "Codex",
-    "tag": "OpenAI",
-    "feed_url": "https://github.com/openai/codex/releases.atom",
-    "hashtags": ["#Codex", "#OpenAI", "#DevTools"]
-  },
-  {
     "brand": "Power Platform",
     "tag": "Microsoft",
     "page_url": "https://www.microsoft.com/en-us/power-platform/blog/",
